@@ -1,0 +1,3 @@
+ALTER TABLE "study_notes" ADD COLUMN "subject_id" integer;--> statement-breakpoint
+ALTER TABLE "study_notes" ADD CONSTRAINT "study_notes_subject_id_subjects_id_fk" FOREIGN KEY ("subject_id") REFERENCES "public"."subjects"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "previous_year_papers" ADD CONSTRAINT "previous_year_papers_subject_id_subjects_id_fk" FOREIGN KEY ("subject_id") REFERENCES "public"."subjects"("id") ON DELETE set null ON UPDATE no action;

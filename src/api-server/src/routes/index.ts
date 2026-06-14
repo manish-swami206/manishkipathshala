@@ -1,0 +1,40 @@
+import { Router, type IRouter } from "express";
+import healthRouter from "./health";
+import statsRouter from "./stats";
+import currentAffairsRouter from "./currentAffairs";
+import studyNotesRouter from "./studyNotes";
+import pyqRouter from "./pyq";
+import ncertRouter from "./ncert";
+import papersRouter from "./pyp";
+import supportRouter from "./support";
+import announcementsRouter from "./announcements";
+import streaksRouter from "./streaks";
+import adminRouter from "./admin/index";
+import examSetsRouter from "./examSets";
+import dailyQuizzesRouter from "./dailyQuizzes";
+import questionsBatchRouter from "./questions";
+import mockTestsRouter from "./mockTests";
+import subjectsRouter from "./subjects";
+import attemptsRouter from "./attempts";
+
+const router: IRouter = Router();
+
+router.use(healthRouter);
+router.use(subjectsRouter);
+router.use(statsRouter);
+router.use(announcementsRouter);
+router.use(streaksRouter);
+router.use(currentAffairsRouter);
+router.use(studyNotesRouter);
+router.use(pyqRouter);
+router.use(ncertRouter);
+router.use(papersRouter);
+router.use(supportRouter);
+router.use(examSetsRouter);
+router.use(dailyQuizzesRouter);
+router.use(questionsBatchRouter);
+router.use(mockTestsRouter);
+router.use(attemptsRouter);
+router.use("/admin", adminRouter);
+
+export default router;

@@ -36,7 +36,7 @@ export async function getQuestionsBatch(req: Request, res: Response, next: NextF
     }
 
     const cacheKey = `questions:batch:${idList.sort().join(",")}`;
-    const cached = cacheGet<unknown[]>(cacheKey);
+    const cached = await cacheGet<unknown[]>(cacheKey);
     if (cached) { res.json({ data: cached }); return; }
 
     const questions = await db
@@ -45,7 +45,7 @@ export async function getQuestionsBatch(req: Request, res: Response, next: NextF
       .where(and(inArray(questionsTable.id, idList), eq(questionsTable.isActive, true)));
 
     const result = questions.map(mapQuestion);
-    cacheSet(cacheKey, result, CacheTTL.SHORT);
+    await cacheSet(cacheKey, result, CacheTTL.SHORT);
     res.json({ data: result });
   } catch (err) {
     return next(err);

@@ -170,13 +170,23 @@ export async function getPyqQuestions(req: Request, res: Response, next: NextFun
 
     const uniqueIds = [...new Set(questionIds)];
 
-    let all = await db
-      .select()
-      .from(questionsTable)
-      .where(and(inArray(questionsTable.id, uniqueIds), eq(questionsTable.isActive, true)));
+    // Paginate in SQL — never materialize the full question payload per page request
+    const [countRowArr, rows] = await Promise.all([
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(questionsTable)
+        .where(and(inArray(questionsTable.id, uniqueIds), eq(questionsTable.isActive, true))),
+      db
+        .select()
+        .from(questionsTable)
+        .where(and(inArray(questionsTable.id, uniqueIds), eq(questionsTable.isActive, true)))
+        .orderBy(questionsTable.id)
+        .limit(limit)
+        .offset(offset),
+    ]);
 
-    const total = all.length;
-    const data = all.slice(offset, offset + limit).map(mapQuestion);
+    const total = Number(countRowArr[0]?.count ?? 0);
+    const data = rows.map(mapQuestion);
 
     return res.json({
       data,

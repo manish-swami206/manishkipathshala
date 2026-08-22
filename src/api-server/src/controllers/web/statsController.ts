@@ -14,33 +14,26 @@ import { cacheGet, cacheSet, CacheTTL } from "../../lib/cache";
 export async function getStats(_req: Request, res: Response, next: NextFunction) {
   try {
     const cacheKey = "public:stats";
-    const cached = cacheGet<unknown>(cacheKey);
+    const cached = await cacheGet<unknown>(cacheKey);
     if (cached) { res.json(cached); return; }
 
-    const [usersRow] = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(userStreaksTable);
-
-    const [activeRow] = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(userStreaksTable)
-      .where(sql`${userStreaksTable.totalPoints} > 0`);
-
-    const [subjectsRow] = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(subjects);
-    const [questionsRow] = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(questionsTable);
-    const [caRow] = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(currentAffairsTable);
-    const [notesRow] = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(studyNotesTable);
-    const [mockRow] = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(mockTestsTable);
+    const [
+      [usersRow],
+      [activeRow],
+      [subjectsRow],
+      [questionsRow],
+      [caRow],
+      [notesRow],
+      [mockRow],
+    ] = await Promise.all([
+      db.select({ count: sql<number>`count(*)` }).from(userStreaksTable),
+      db.select({ count: sql<number>`count(*)` }).from(userStreaksTable).where(sql`${userStreaksTable.totalPoints} > 0`),
+      db.select({ count: sql<number>`count(*)` }).from(subjects),
+      db.select({ count: sql<number>`count(*)` }).from(questionsTable),
+      db.select({ count: sql<number>`count(*)` }).from(currentAffairsTable),
+      db.select({ count: sql<number>`count(*)` }).from(studyNotesTable),
+      db.select({ count: sql<number>`count(*)` }).from(mockTestsTable),
+    ]);
 
     const result = {
       users: Number(usersRow.count),
@@ -52,7 +45,7 @@ export async function getStats(_req: Request, res: Response, next: NextFunction)
       mockTestsCount: Number(mockRow.count),
     };
 
-    cacheSet(cacheKey, result, CacheTTL.ANALYTICS);
+    await cacheSet(cacheKey, result, CacheTTL.ANALYTICS);
     res.json(result);
   } catch (err) {
     next(err);

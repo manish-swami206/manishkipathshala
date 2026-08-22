@@ -38,7 +38,7 @@ export async function getNcertMcqQuestions(req: Request, res: Response, next: Ne
     const offset = (page - 1) * limit;
 
     const cacheKey = `ncert-mcq:${classNum || "all"}:${subject || "all"}:${medium || "all"}:${page}`;
-    const cached = cacheGet<unknown>(cacheKey);
+    const cached = await cacheGet<unknown>(cacheKey);
     if (cached) { res.json(cached); return; }
 
     const setConditions = [eq(examSetsTable.type, "ncert"), eq(examSetsTable.isActive, true)];
@@ -82,7 +82,7 @@ export async function getNcertMcqQuestions(req: Request, res: Response, next: Ne
     const total = all.length;
     const data = all.slice(offset, offset + limit).map(mapQuestion);
     const result = { data, total, page, totalPages: Math.ceil(total / limit) };
-    cacheSet(cacheKey, result, CacheTTL.QUESTIONS);
+    await cacheSet(cacheKey, result, CacheTTL.QUESTIONS);
     res.json(result);
   } catch (err) {
     return next(err);
@@ -128,7 +128,7 @@ export async function getNcertBooks(req: Request, res: Response, next: NextFunct
     const offset = (pageNum - 1) * limitNum;
 
     const cacheKey = `ncert-books:${classNum || "all"}:${subject || "all"}:${medium || "all"}:${pageNum}:${limitNum}`;
-    const cached = cacheGet<unknown[]>(cacheKey);
+    const cached = await cacheGet<unknown[]>(cacheKey);
     if (cached) { res.json(cached); return; }
 
     const conditions = [eq(ncertBooksTable.isActive, true)];
@@ -157,7 +157,7 @@ export async function getNcertBooks(req: Request, res: Response, next: NextFunct
       page: pageNum,
       totalPages: Math.ceil(total / limitNum),
     };
-    cacheSet(cacheKey, result, CacheTTL.QUESTIONS);
+    await cacheSet(cacheKey, result, CacheTTL.QUESTIONS);
     res.json(result);
   } catch (err) {
     return next(err);

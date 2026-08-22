@@ -29,24 +29,25 @@ export async function listPyp(req: Request, res: Response, next: NextFunction) {
 
     const where = and(...conditions);
 
-    const [countRow] = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(previousYearPapersTable)
-      .where(where);
-
-    const data = await db
-      .select()
-      .from(previousYearPapersTable)
-      .where(where)
-      .orderBy(desc(previousYearPapersTable.year))
-      .limit(limitNum)
-      .offset(offset);
+    const [countRowArr, data] = await Promise.all([
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(previousYearPapersTable)
+        .where(where),
+      db
+        .select()
+        .from(previousYearPapersTable)
+        .where(where)
+        .orderBy(desc(previousYearPapersTable.year))
+        .limit(limitNum)
+        .offset(offset),
+    ]);
 
     return res.json({
       data,
-      total: Number(countRow?.count ?? 0),
+      total: Number(countRowArr[0]?.count ?? 0),
       page: pageNum,
-      totalPages: Math.ceil(Number(countRow?.count ?? 0) / limitNum),
+      totalPages: Math.ceil(Number(countRowArr[0]?.count ?? 0) / limitNum),
     });
   } catch (err) {
     return next(err);
@@ -56,14 +57,14 @@ export async function listPyp(req: Request, res: Response, next: NextFunction) {
 export async function listSyllabus(req: Request, res: Response, next: NextFunction) {
   try {
     const cacheKey = "syllabus:list";
-    const cached = cacheGet<unknown[]>(cacheKey);
+    const cached = await cacheGet<unknown[]>(cacheKey);
     if (cached) { res.json(cached); return; }
 
     const all = await db
       .select()
       .from(syllabusTable)
       .where(eq(syllabusTable.isActive, true));
-    cacheSet(cacheKey, all, CacheTTL.QUESTIONS);
+    await cacheSet(cacheKey, all, CacheTTL.QUESTIONS);
     return res.json(all);
   } catch (err) {
     return next(err);

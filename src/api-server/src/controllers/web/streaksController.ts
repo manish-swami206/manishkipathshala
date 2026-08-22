@@ -81,77 +81,101 @@ export async function recordActivity(req: Request, res: Response, next: NextFunc
   const safeDisplayName = (displayName ?? "Learner").trim() || "Learner";
 
   try {
-    const [existing] = await db
-      .select()
-      .from(userStreaksTable)
-      .where(eq(userStreaksTable.userId, userId));
+    // Transaction + row lock prevents the read-modify-write race where two
+    // concurrent activity posts double-increment streaks or collide on insert.
+    const result = await db.transaction(async (tx) => {
+      const [existing] = await tx
+        .select()
+        .from(userStreaksTable)
+        .where(eq(userStreaksTable.userId, userId))
+        .for("update");
 
-    if (!existing) {
-      await db.insert(userStreaksTable).values({
-        userId,
-        displayName: safeDisplayName,
-        currentStreak: 1,
-        longestStreak: 1,
-        totalPoints: pointsEarned,
-        quizCount: activityType === "quiz" ? 1 : 0,
-        mockCount: activityType === "mock" ? 1 : 0,
-        pyqCount: activityType === "pyq" ? 1 : 0,
-        lastActivityDate: today,
-      });
+      if (!existing) {
+        const [inserted] = await tx
+          .insert(userStreaksTable)
+          .values({
+            userId,
+            displayName: safeDisplayName,
+            currentStreak: 1,
+            longestStreak: 1,
+            totalPoints: pointsEarned,
+            quizCount: activityType === "quiz" ? 1 : 0,
+            mockCount: activityType === "mock" ? 1 : 0,
+            pyqCount: activityType === "pyq" ? 1 : 0,
+            lastActivityDate: today,
+          })
+          .onConflictDoNothing()
+          .returning();
 
-      return res.json({
-        currentStreak: 1,
-        longestStreak: 1,
-        totalPoints: pointsEarned,
-        pointsEarned,
-        streakIncremented: true,
-      });
-    }
+        if (inserted) {
+          return {
+            currentStreak: 1,
+            longestStreak: 1,
+            totalPoints: pointsEarned,
+            pointsEarned,
+            streakIncremented: true,
+          };
+        }
+        // Lost the unique-insert race — fall through by re-selecting locked row
+        const [raced] = await tx
+          .select()
+          .from(userStreaksTable)
+          .where(eq(userStreaksTable.userId, userId))
+          .for("update");
+        return applyActivity(tx, raced!);
+      }
 
-    const alreadyToday = existing.lastActivityDate === today;
-    let newStreak = existing.currentStreak;
+      return applyActivity(tx, existing);
+    });
+
+    return res.json(result);
+  } catch (err) {
+    return next(err);
+  }
+
+  async function applyActivity(
+    tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
+    row: typeof userStreaksTable.$inferSelect,
+  ) {
+    const alreadyToday = row.lastActivityDate === today;
+    let newStreak = row.currentStreak;
     let streakIncremented = false;
 
     if (!alreadyToday) {
-      if (existing.lastActivityDate === yesterday) {
-        newStreak = existing.currentStreak + 1;
+      if (row.lastActivityDate === yesterday) {
+        newStreak = row.currentStreak + 1;
       } else {
         newStreak = 1;
       }
       streakIncremented = true;
     }
 
-    const newLongest = Math.max(existing.longestStreak, newStreak);
-    const newPoints = existing.totalPoints + pointsEarned;
+    const newLongest = Math.max(row.longestStreak, newStreak);
+    const newPoints = row.totalPoints + pointsEarned;
 
-    const updateData: Record<string, unknown> = {
-      displayName: safeDisplayName,
-      ...(activityType === "login"
-        ? {}
-        : { totalPoints: newPoints }),
-      currentStreak: newStreak,
-      longestStreak: newLongest,
-      lastActivityDate: today,
-      ...(activityType === "quiz" ? { quizCount: existing.quizCount + 1 } : {}),
-      ...(activityType === "mock" ? { mockCount: existing.mockCount + 1 } : {}),
-      ...(activityType === "pyq" ? { pyqCount: existing.pyqCount + 1 } : {}),
-      updatedAt: new Date(),
-    };
-
-    await db
+    const [updated] = await tx
       .update(userStreaksTable)
-      .set(updateData)
-      .where(eq(userStreaksTable.userId, userId));
+      .set({
+        displayName: safeDisplayName,
+        ...(activityType === "login" ? {} : { totalPoints: newPoints }),
+        currentStreak: newStreak,
+        longestStreak: newLongest,
+        lastActivityDate: today,
+        ...(activityType === "quiz" ? { quizCount: row.quizCount + 1 } : {}),
+        ...(activityType === "mock" ? { mockCount: row.mockCount + 1 } : {}),
+        ...(activityType === "pyq" ? { pyqCount: row.pyqCount + 1 } : {}),
+        updatedAt: new Date(),
+      })
+      .where(eq(userStreaksTable.userId, userId))
+      .returning();
 
-    return res.json({
-      currentStreak: newStreak,
-      longestStreak: newLongest,
-      totalPoints: activityType === "login" ? existing.totalPoints : newPoints,
+    return {
+      currentStreak: updated.currentStreak,
+      longestStreak: updated.longestStreak,
+      totalPoints: activityType === "login" ? row.totalPoints : updated.totalPoints,
       pointsEarned,
       streakIncremented,
-    });
-  } catch (err) {
-    return next(err);
+    };
   }
 }
 

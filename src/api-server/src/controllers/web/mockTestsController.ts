@@ -14,23 +14,25 @@ export async function listMockTests(req: Request, res: Response, next: NextFunct
     const offset = (pageNum - 1) * limitNum;
 
     const cacheKey = `mock-tests:list:${pageNum}:${limitNum}`;
-    const cached = cacheGet<unknown>(cacheKey);
+    const cached = await cacheGet<unknown>(cacheKey);
     if (cached) { res.json(cached); return; }
 
     const where = eq(mockTestsTable.isActive, true);
 
-    const [countRow] = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(mockTestsTable)
-      .where(where);
-
-    const data = await db
-      .select()
-      .from(mockTestsTable)
-      .where(where)
-      .orderBy(mockTestsTable.createdAt)
-      .limit(limitNum)
-      .offset(offset);
+    const [countRowArr, data] = await Promise.all([
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(mockTestsTable)
+        .where(where),
+      db
+        .select()
+        .from(mockTestsTable)
+        .where(where)
+        .orderBy(mockTestsTable.createdAt)
+        .limit(limitNum)
+        .offset(offset),
+    ]);
+    const countRow = countRowArr[0];
 
     const total = Number(countRow?.count ?? 0);
     const result = {
@@ -40,7 +42,7 @@ export async function listMockTests(req: Request, res: Response, next: NextFunct
       totalPages: Math.ceil(total / limitNum),
     };
 
-    cacheSet(cacheKey, result, CacheTTL.QUESTIONS);
+    await cacheSet(cacheKey, result, CacheTTL.QUESTIONS);
     res.json(result);
   } catch (err) {
     return next(err);

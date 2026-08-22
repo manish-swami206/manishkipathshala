@@ -28,7 +28,7 @@ function mapQuestion(q: {
 export async function listDailyQuizzes(req: Request, res: Response, next: NextFunction) {
   try {
     const cacheKey = "daily-quizzes:today";
-    const cached = cacheGet<unknown[]>(cacheKey);
+    const cached = await cacheGet<unknown[]>(cacheKey);
     if (cached) { res.json(cached); return; }
 
     const today = new Date().toISOString().split("T")[0];
@@ -63,7 +63,7 @@ export async function listDailyQuizzes(req: Request, res: Response, next: NextFu
       updatedAt: q.updatedAt?.toISOString(),
     }));
 
-    cacheSet(cacheKey, result, CacheTTL.SHORT);
+    await cacheSet(cacheKey, result, CacheTTL.SHORT);
     res.json(result);
   } catch (err) {
     return next(err);

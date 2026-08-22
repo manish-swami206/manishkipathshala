@@ -11,12 +11,12 @@ import { AppError } from "../../middleware/errorHandler";
 // GET all current affairs with DB-level pagination
 export async function listCurrentAffairs(req: Request, res: Response, next: NextFunction) {
   try {
-    const page = parseInt(req.query.page as string, 10) || 1;
-    const limit = parseInt(req.query.limit as string, 10) || 12;
+    const page = Math.max(1, parseInt(req.query.page as string, 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string, 10) || 12));
     const offset = (page - 1) * limit;
 
     const cacheKey = `current-affairs:list:${page}:${limit}`;
-    const cached = cacheGet<unknown>(cacheKey);
+    const cached = await cacheGet<unknown>(cacheKey);
     if (cached) { res.json(cached); return; }
 
     const [items, countRows] = await Promise.all([
@@ -45,7 +45,7 @@ export async function listCurrentAffairs(req: Request, res: Response, next: Next
       page,
       totalPages,
     };
-    cacheSet(cacheKey, result, CacheTTL.QUESTIONS);
+    await cacheSet(cacheKey, result, CacheTTL.QUESTIONS);
     return res.json(result);
   } catch (err) {
     return next(err);

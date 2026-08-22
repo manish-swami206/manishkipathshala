@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, boolean, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, boolean, timestamp, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { relations } from "drizzle-orm";
 
@@ -22,7 +22,10 @@ export const supportTicketsTable = pgTable("support_tickets", {
   lastMessageAt: timestamp("last_message_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+}, (t) => [
+  index("support_tickets_user_idx").on(t.userId),
+  index("support_tickets_status_idx").on(t.status),
+]);
 
 export const supportMessagesTable = pgTable("support_messages", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -32,7 +35,9 @@ export const supportMessagesTable = pgTable("support_messages", {
   message: text("message").notNull(),
   sender: text("sender").notNull().default("user"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (t) => [
+  index("support_messages_ticket_idx").on(t.ticketId),
+]);
 
 export const supportTicketsRelations = relations(
   supportTicketsTable,

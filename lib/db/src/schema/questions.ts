@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, integer, real, boolean, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, integer, real, boolean, timestamp, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { relations } from "drizzle-orm";
 import { subjects } from "./subjects";
@@ -25,7 +25,11 @@ export const questionsTable = pgTable("questions", {
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+}, (t) => [
+  index("questions_subject_idx").on(t.subject),
+  index("questions_subject_id_idx").on(t.subjectId),
+  index("questions_difficulty_idx").on(t.difficulty),
+]);
 
 export const questionsRelations = relations(questionsTable, ({ one }) => ({
   subject: one(subjects, {

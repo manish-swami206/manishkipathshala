@@ -30,6 +30,9 @@ const envSchema = z.object({
   ALLOWED_ORIGINS: z.string().default("http://localhost:3000"),
   RATE_LIMIT_WINDOW_MS: z.coerce.number().default(60 * 1000), // 1 minute window
   RATE_LIMIT_MAX: z.coerce.number().default(500),
+  // Optional — when set, caching runs on Upstash Redis; otherwise falls back to in-process memory.
+  UPSTASH_REDIS_REST_URL: z.string().url().optional(),
+  UPSTASH_REDIS_REST_TOKEN: z.string().min(1).optional(),
 });
 
 if (missing.length) {

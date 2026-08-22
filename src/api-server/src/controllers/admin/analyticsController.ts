@@ -7,7 +7,7 @@ import { cacheGet, cacheSet, CacheTTL } from "../../lib/cache";
 export async function getAnalytics(_req: Request, res: Response, next: NextFunction) {
   try {
     const cacheKey = "admin:analytics:overview";
-    const cached = cacheGet<unknown>(cacheKey);
+    const cached = await cacheGet<unknown>(cacheKey);
     if (cached) { res.json(cached); return; }
 
     const [result] = await db
@@ -20,7 +20,7 @@ export async function getAnalytics(_req: Request, res: Response, next: NextFunct
       })
       .from(studentAttemptsTable);
 
-    cacheSet(cacheKey, result, CacheTTL.ANALYTICS);
+    await cacheSet(cacheKey, result, CacheTTL.ANALYTICS);
     res.json(result);
   } catch (err) {
     return next(err);

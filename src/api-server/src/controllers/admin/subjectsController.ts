@@ -17,17 +17,46 @@ const subjectSchema = z.object({
 
 export async function listAllSubjects(req: Request, res: Response, next: NextFunction) {
   try {
-    const { search } = req.query as Record<string, string>;
+    const {
+      page: pageStr = "1",
+      limit: limitStr = "20",
+      search,
+      status,
+    } = req.query as Record<string, string>;
+    const pageNum = Math.max(1, parseInt(pageStr, 10));
+    const limitNum = Math.min(100, Math.max(1, parseInt(limitStr, 10)));
+    const offset = (pageNum - 1) * limitNum;
+
     const conditions = [];
     if (search) conditions.push(ilike(subjects.name, `%${search}%`));
+    if (status === "active") conditions.push(eq(subjects.isActive, true));
+    if (status === "inactive") conditions.push(eq(subjects.isActive, false));
     const where = conditions.length ? and(...conditions) : undefined;
 
-    const data = await db
-      .select()
-      .from(subjects)
-      .where(where)
-      .orderBy(desc(subjects.createdAt));
-    return res.json(data);
+    const [countRowArr, data] = await Promise.all([
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(subjects)
+        .where(where),
+      db
+        .select()
+        .from(subjects)
+        .where(where)
+        .orderBy(desc(subjects.createdAt))
+        .limit(limitNum)
+        .offset(offset),
+    ]);
+
+    const total = Number(countRowArr[0]?.count ?? 0);
+    return res.json({
+      data,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        totalPages: Math.ceil(total / limitNum),
+      },
+    });
   } catch (err) {
     return next(err);
   }

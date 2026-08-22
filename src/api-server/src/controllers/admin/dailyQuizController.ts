@@ -20,22 +20,21 @@ const dailyQuizPayloadSchema = z.object({
 
 export async function listAllDailyQuizzes(req: Request, res: Response, next: NextFunction) {
   try {
-    const page = parseInt(req.query.page as string, 10) || 1;
-    const limit = parseInt(req.query.limit as string, 10) || 10;
+    const page = Math.max(1, parseInt(req.query.page as string, 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string, 10) || 10));
     const offset = (page - 1) * limit;
 
-    const [countRow] = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(dailyQuizzes);
-    const total = Number(countRow?.count ?? 0);
+    const [countRowArr, quizzes] = await Promise.all([
+      db.select({ count: sql<number>`count(*)` }).from(dailyQuizzes),
+      db
+        .select()
+        .from(dailyQuizzes)
+        .orderBy(desc(dailyQuizzes.scheduledDate))
+        .limit(limit)
+        .offset(offset),
+    ]);
+    const total = Number(countRowArr[0]?.count ?? 0);
     const totalPages = Math.max(1, Math.ceil(total / limit));
-
-    const quizzes = await db
-      .select()
-      .from(dailyQuizzes)
-      .orderBy(desc(dailyQuizzes.scheduledDate))
-      .limit(limit)
-      .offset(offset);
 
     return res.json({
       quizzes,

@@ -41,13 +41,16 @@ export const getCurrentAffairById = async (slug: string) => {
     if (byId) return byId;
   }
 
-  // 3. Fall back to title-based slug comparison
-  const allCurrentAffairs = await db
+  // 3. Fall back to title-based slug comparison.
+  // Bounded to the 100 most recent articles so a legacy slug mismatch can
+  // never trigger a full-table scan + full payload transfer (issue A1).
+  const candidates = await db
     .select()
     .from(currentAffairsTable)
-    .orderBy(desc(currentAffairsTable.publishedAt));
+    .orderBy(desc(currentAffairsTable.publishedAt))
+    .limit(100);
 
-  return allCurrentAffairs.find((a) => slugifyTitle(a.title) === normalized);
+  return candidates.find((a) => slugifyTitle(a.title) === normalized);
 };
 
 

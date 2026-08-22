@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { db } from "../../lib/db";
 import { announcementsTable } from "@workspace/db";
-import { eq, desc } from "drizzle-orm";
+import { eq, sql, desc } from "drizzle-orm";
 import { z } from "zod";
 import { cacheDel } from "../../lib/cache";
 import { routeParam } from "../../lib/routeParams";
@@ -16,18 +16,35 @@ const announcementSchema = z.object({
   linkUrl: z.string().optional().nullable(),
 });
 
-export async function listAllAnnouncements(_req: Request, res: Response, next: NextFunction) {
+export async function listAllAnnouncements(req: Request, res: Response, next: NextFunction) {
   try {
-    const announcements = await db
-      .select()
-      .from(announcementsTable)
-      .orderBy(desc(announcementsTable.createdAt));
-    return res.json(
-      announcements.map((a) => ({
+    const page = Math.max(1, parseInt(req.query.page as string, 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string, 10) || 20));
+    const offset = (page - 1) * limit;
+
+    const [countRowArr, announcements] = await Promise.all([
+      db.select({ count: sql<number>`count(*)` }).from(announcementsTable),
+      db
+        .select()
+        .from(announcementsTable)
+        .orderBy(desc(announcementsTable.createdAt))
+        .limit(limit)
+        .offset(offset),
+    ]);
+
+    const total = Number(countRowArr[0]?.count ?? 0);
+    return res.json({
+      data: announcements.map((a) => ({
         ...a,
         createdAt: a.createdAt.toISOString(),
       })),
-    );
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
   } catch (err) {
     return next(err);
   }

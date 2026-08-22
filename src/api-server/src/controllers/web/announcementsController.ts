@@ -6,13 +6,13 @@ import { cacheGet, cacheSet, cacheDel, CacheTTL } from "../../lib/cache";
 
 export async function listAnnouncements(_req: Request, res: Response, next: NextFunction) {
   const cacheKey = "announcements:active";
-  const cached = cacheGet<unknown[]>(cacheKey);
-  if (cached) {
-    res.json(cached);
-    return;
-  }
-
   try {
+    const cached = await cacheGet<unknown[]>(cacheKey);
+    if (cached) {
+      res.json(cached);
+      return;
+    }
+
     const announcements = await db
       .select()
       .from(announcementsTable)
@@ -24,7 +24,7 @@ export async function listAnnouncements(_req: Request, res: Response, next: Next
       createdAt: a.createdAt.toISOString(),
     }));
 
-    cacheSet(cacheKey, serialized, CacheTTL.SHORT);
+    await cacheSet(cacheKey, serialized, CacheTTL.SHORT);
     res.json(serialized);
   } catch (err) {
     return next(err);

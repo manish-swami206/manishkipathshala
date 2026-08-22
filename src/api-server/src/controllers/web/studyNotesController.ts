@@ -17,7 +17,7 @@ export async function listStudyNotes(req: Request, res: Response, next: NextFunc
     const offset = (page - 1) * limit;
 
     const cacheKey = `study-notes:${page}:${subject || "all"}:${medium || "all"}:${search || ""}`;
-    const cached = cacheGet<unknown>(cacheKey);
+    const cached = await cacheGet<unknown>(cacheKey);
     if (cached) { res.json(cached); return; }
 
     const conditions = [eq(studyNotesTable.isActive, true)];
@@ -26,22 +26,24 @@ export async function listStudyNotes(req: Request, res: Response, next: NextFunc
     if (search) conditions.push(ilike(studyNotesTable.title, `%${search}%`));
     const where = conditions.length ? and(...conditions) : undefined;
 
-    const [countRow] = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(studyNotesTable)
-      .where(where);
-
-    const data = await db
-      .select()
-      .from(studyNotesTable)
-      .where(where)
-      .limit(limit)
-      .offset(offset);
+    const [countRowArr, data] = await Promise.all([
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(studyNotesTable)
+        .where(where),
+      db
+        .select()
+        .from(studyNotesTable)
+        .where(where)
+        .limit(limit)
+        .offset(offset),
+    ]);
+    const countRow = countRowArr[0];
 
     const total = Number(countRow?.count ?? 0);
     const result = { data, total, page, totalPages: Math.ceil(total / limit) };
 
-    cacheSet(cacheKey, result, CacheTTL.QUESTIONS);
+    await cacheSet(cacheKey, result, CacheTTL.QUESTIONS);
     res.json(result);
   } catch (err) {
     return next(err);

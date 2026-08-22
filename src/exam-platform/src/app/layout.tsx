@@ -14,8 +14,8 @@ export const metadata: Metadata = {
   },
   description: "Premium exam preparation platform for UPSC, SSC, RAS and more",
   icons: {
-    icon: "/favicon.svg",
-    shortcut: "/favicon.svg",
+    icon: "/favicon.ico",
+    shortcut: "/favicon.ico",
   },
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_SITE_URL ?? "https://manishkipathshala.com",

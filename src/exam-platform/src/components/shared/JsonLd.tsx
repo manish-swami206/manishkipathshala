@@ -29,7 +29,7 @@ export function OrganizationJsonLd() {
         "@type": "Organization",
         name: SITE_NAME,
         url: BASE_URL,
-        logo: `${BASE_URL}/favicon.svg`,
+        logo: `${BASE_URL}/favicon.ico`,
         description:
           "India's premier online exam preparation platform for UPSC, SSC, RAS, RRB, Banking, and State PCS exams.",
         address: {
@@ -156,7 +156,7 @@ export function ArticleJsonLd({
           url: BASE_URL,
           logo: {
             "@type": "ImageObject",
-            url: `${BASE_URL}/favicon.svg`,
+            url: `${BASE_URL}/favicon.ico`,
           },
         },
         ...(category ? { about: { "@type": "Thing", name: category } } : {}),

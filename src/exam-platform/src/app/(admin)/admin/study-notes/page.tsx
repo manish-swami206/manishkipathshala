@@ -60,6 +60,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useListSubjects } from "@/lib/api";
 import { useAdminFetch } from "@/hooks/useAdminFetch";
 import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
+import { AdminPagination } from "@/components/admin/AdminPagination";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface StudyNote {
@@ -118,6 +119,7 @@ export default function StudyNotesAdminPage() {
   const { getToken } = useAuth();
   const adminFetch = useAdminFetch();
   const { data: pyqSubjects = [] } = useListSubjects();
+  const [page, setPage] = useState(1);
 
   // Detail Dialog
   const [viewingItem, setViewingItem] = useState<StudyNote | null>(null);
@@ -175,11 +177,13 @@ export default function StudyNotesAdminPage() {
   }, [sheetOpen, editingItem, pyqSubjects]);
 
   // ── Queries ────────────────────────────────────────────────────────────────
-  const { data: notesResponse, isLoading } = useQuery<{ data: StudyNote[]; pagination: Record<string, unknown> }>({
-    queryKey: ["admin", "study-notes"],
-    queryFn: () => adminFetch<{ data: StudyNote[]; pagination: Record<string, unknown> }>("/api/admin/study-notes"),
+  const { data: notesResponse, isLoading } = useQuery<{ data: StudyNote[]; pagination: { page: number; limit: number; total: number; totalPages: number } }>({
+    queryKey: ["admin", "study-notes", page],
+    queryFn: () => adminFetch<{ data: StudyNote[]; pagination: { page: number; limit: number; total: number; totalPages: number } }>(`/api/admin/study-notes?page=${page}&limit=20`),
   });
   const notes = notesResponse?.data ?? [];
+  const totalPages = notesResponse?.pagination?.totalPages ?? 1;
+  const total = notesResponse?.pagination?.total ?? 0;
 
   // ── Mutations ──────────────────────────────────────────────────────────────
   const invalidate = () => qc.invalidateQueries({ queryKey: ["admin", "study-notes"] });
@@ -545,6 +549,8 @@ export default function StudyNotesAdminPage() {
             </div>
           )}
         </motion.div>
+
+        <AdminPagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
 
         {/* ── Detail Dialog ───────────────────────────────────────────────── */}
         <Dialog open={!!viewingItem} onOpenChange={(open) => !open && setViewingItem(null)}>

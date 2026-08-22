@@ -27,9 +27,20 @@
 - Confirmed `subjects.slug` and `exams.slug` already have implicit unique indexes via `.unique()`
 - All other columns from A4 audit already indexed: questions, support_messages, current_affairs, streaks, daily_quizzes
 
+## Batch 5: Admin Pagination ✅
+- Created shared `AdminPagination` component (`components/admin/AdminPagination.tsx`)
+- **P1 (subjects)**: Added page state, debounced search, wired page/limit params, added AdminPagination UI
+- **P2 (announcements)**: Added page state, wired page/limit params, added AdminPagination UI
+- **P3 (syllabus)**: Added page state, wired page/limit params, added AdminPagination UI
+- **P4 (study-notes)**: Added page state, wired page/limit params, added AdminPagination UI
+- **P5 (ncert)**: Added page state, wired page/limit params, added AdminPagination UI
+- **P6 (pyp)**: Added page state, wired page/limit params, search reset on page change, added AdminPagination UI
+- **P7 (support-tickets)**: Added page state, changed limit from 50→20, added AdminPagination UI, filter/search reset to page 1
+- **P8**: Eliminated duplicated Prev/Next blocks — all 7 pages now use shared component
+- All backends already had pagination support — only frontend wiring was needed
+
 ## Remaining Issues (from issues.md)
 ### High Priority
-- **P1–P7**: Wire pagination params into 7 broken admin pages (subjects, announcements, syllabus, study-notes, ncert, pyp, support-tickets)
 - **A3**: Batch/cache Clerk identity lookups (N+1 problem)
 - **A5**: SQL-level pagination for PYQ questions endpoint
 - **A8**: Streak write race condition (needs transaction/upsert)
@@ -46,4 +57,4 @@
 ### Low Priority
 - **A16–A19**: Dead deps, unbounded selects, leaderboard, error handler
 - **F14–F16**: Minor frontend issues
-- **P8, P10, P11**: UI/UX cleanup
+- **P10, P11**: UI/UX cleanup

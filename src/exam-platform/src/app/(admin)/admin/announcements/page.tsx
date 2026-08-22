@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Plus,
@@ -52,6 +52,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAdminFetch } from "@/hooks/useAdminFetch";
 import { ALL_NAV_ITEMS } from "@/components/layout/AppLayout";
 import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
+import { AdminPagination } from "@/components/admin/AdminPagination";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface Announcement {
@@ -141,11 +142,18 @@ export default function AnnouncementsAdminPage() {
   const [editingAnnouncement, setEditingAnnouncement] =
     useState<Announcement | null>(null);
   const [deleteTargetId, setDeleteId] = useState<number | null>(null);
+  const [page, setPage] = useState(1);
 
-  const { data: announcements = [], isLoading } = useQuery<Announcement[]>({
-    queryKey: ["admin", "announcements"],
-    queryFn: () => adminFetch<Announcement[]>("/api/admin/announcements"),
+  const { data: response, isLoading } = useQuery<{
+    data: Announcement[];
+    pagination: { page: number; limit: number; total: number; totalPages: number };
+  }>({
+    queryKey: ["admin", "announcements", page],
+    queryFn: () => adminFetch(`/api/admin/announcements?page=${page}&limit=20`),
   });
+  const announcements = response?.data ?? [];
+  const totalPages = response?.pagination?.totalPages ?? 1;
+  const total = response?.pagination?.total ?? 0;
 
   const toggleMutation = useMutation({
     mutationFn: ({ id, isActive }: { id: number; isActive: boolean }) =>
@@ -492,6 +500,8 @@ export default function AnnouncementsAdminPage() {
             </div>
           )}
         </motion.div>
+
+        <AdminPagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
 
         {/* ── Sheet ───────────────────────────────────────────────────────── */}
         <AnnouncementFormSheet

@@ -50,6 +50,7 @@ import { useAuth } from "@clerk/nextjs";
 import { useToast } from "@/hooks/use-toast";
 import { useAdminFetch } from "@/hooks/useAdminFetch";
 import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
+import { AdminPagination } from "@/components/admin/AdminPagination";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface SyllabusItem {
@@ -103,6 +104,7 @@ export default function SyllabusAdminPage() {
   const qc = useQueryClient();
   const adminFetch = useAdminFetch();
   const { getToken } = useAuth();
+  const [page, setPage] = useState(1);
 
   // Detail Dialog
   const [viewingItem, setViewingItem] = useState<SyllabusItem | null>(null);
@@ -147,13 +149,15 @@ export default function SyllabusAdminPage() {
 
   // ── Queries ────────────────────────────────────────────────────────────────
   const { data: syllabusResponse, isLoading } = useQuery({
-    queryKey: ["admin", "syllabus"],
+    queryKey: ["admin", "syllabus", page],
     queryFn: () => adminFetch<{
       data: SyllabusItem[];
       pagination: { page: number; limit: number; total: number; totalPages: number };
-    }>("/api/admin/syllabus"),
+    }>(`/api/admin/syllabus?page=${page}&limit=20`),
   });
   const list = syllabusResponse?.data ?? [];
+  const totalPages = syllabusResponse?.pagination?.totalPages ?? 1;
+  const total = syllabusResponse?.pagination?.total ?? 0;
 
   // ── Mutations ──────────────────────────────────────────────────────────────
   const invalidate = () => qc.invalidateQueries({ queryKey: ["admin", "syllabus"] });
@@ -503,6 +507,8 @@ export default function SyllabusAdminPage() {
             </div>
           )}
         </motion.div>
+
+        <AdminPagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
 
         {/* ── Detail Dialog ───────────────────────────────────────────────── */}
         <Dialog open={!!viewingItem} onOpenChange={(open) => !open && setViewingItem(null)}>

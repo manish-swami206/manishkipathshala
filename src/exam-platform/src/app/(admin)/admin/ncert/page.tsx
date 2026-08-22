@@ -58,6 +58,7 @@ import { useListSubjects } from "@/lib/api";
 import { useAdminFetch } from "@/hooks/useAdminFetch";
 import { useAuth } from "@clerk/nextjs";
 import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
+import { AdminPagination } from "@/components/admin/AdminPagination";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface NcertBook {
@@ -119,6 +120,7 @@ export default function NcertAdminPage() {
   const adminFetch = useAdminFetch();
   const { getToken } = useAuth();
   const { data: pyqSubjects = [] } = useListSubjects();
+  const [page, setPage] = useState(1);
 
   // Detail Dialog
   const [viewingItem, setViewingItem] = useState<NcertBook | null>(null);
@@ -168,11 +170,13 @@ export default function NcertAdminPage() {
 
   // ── Queries ────────────────────────────────────────────────────────────────
   const { data: response, isLoading } = useQuery({
-    queryKey: ["admin", "ncert-books"],
+    queryKey: ["admin", "ncert-books", page],
     queryFn: () =>
-      adminFetch<{ data: NcertBook[]; pagination: { page: number; limit: number; total: number; totalPages: number } }>("/api/admin/ncert-books"),
+      adminFetch<{ data: NcertBook[]; pagination: { page: number; limit: number; total: number; totalPages: number } }>(`/api/admin/ncert-books?page=${page}&limit=20`),
   });
   const books = response?.data ?? [];
+  const totalPages = response?.pagination?.totalPages ?? 1;
+  const total = response?.pagination?.total ?? 0;
 
   // ── Create/update mutations ──────────────────────────────────────────────
   const invalidate = () => qc.invalidateQueries({ queryKey: ["admin", "ncert-books"] });
@@ -524,6 +528,8 @@ export default function NcertAdminPage() {
             </div>
           )}
         </motion.div>
+
+        <AdminPagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
 
         {/* ── Detail Dialog ───────────────────────────────────────────────── */}
         <Dialog open={!!viewingItem} onOpenChange={(open) => !open && setViewingItem(null)}>

@@ -18,6 +18,7 @@ import { useAdminFetch } from "@/hooks/useAdminFetch";
 import { useAuth } from "@clerk/nextjs";
 import { useToast } from "@/hooks/use-toast";
 import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
+import { AdminPagination } from "@/components/admin/AdminPagination";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -112,6 +113,7 @@ export default function PypAdminPage() {
   }, [sheetOpen, editingItem]);
 
   // Search
+  const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -120,17 +122,18 @@ export default function PypAdminPage() {
   const { data: subjects = [] } = useListSubjects();
 
   const { data: pypResponse, isLoading } = useQuery({
-    queryKey: ["admin", "pyp", debouncedSearch],
+    queryKey: ["admin", "pyp", page, debouncedSearch],
     queryFn: () => {
-      const sp = new URLSearchParams();
+      const sp = new URLSearchParams({ page: String(page), limit: "20" });
       if (debouncedSearch.trim()) sp.set("search", debouncedSearch.trim());
-      const query = sp.toString();
       return adminFetch<{ data: PypPaper[]; pagination: { page: number; limit: number; total: number; totalPages: number } }>(
-        `/api/admin/pyp${query ? `?${query}` : ""}`,
+        `/api/admin/pyp?${sp.toString()}`,
       );
     },
   });
   const papers = pypResponse?.data ?? [];
+  const totalPages = pypResponse?.pagination?.totalPages ?? 1;
+  const total = pypResponse?.pagination?.total ?? 0;
 
   const createMutation = useMutation({
     mutationFn: async (body: Record<string, unknown>) => {
@@ -349,6 +352,7 @@ export default function PypAdminPage() {
             if (searchTimer.current) clearTimeout(searchTimer.current);
             searchTimer.current = setTimeout(() => {
               setDebouncedSearch(val);
+              setPage(1);
             }, 400);
           }}
           placeholder="Search papers..."
@@ -486,6 +490,8 @@ export default function PypAdminPage() {
           </div>
         )}
       </Card>
+
+      <AdminPagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
 
       {/* Create/Edit Sheet */}
       <Sheet open={sheetOpen} onOpenChange={(open) => { if (!open) setEditingItem(null); setSheetOpen(open); }}>

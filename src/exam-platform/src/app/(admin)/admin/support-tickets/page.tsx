@@ -8,6 +8,7 @@ import {
 } from "@/lib/api";
 import { useState, useRef, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { AdminPagination } from "@/components/admin/AdminPagination";
 import { useToast } from "@/hooks/use-toast";
 import {
   MessageSquare,
@@ -86,16 +87,19 @@ export default function SupportTicketsAdminPage() {
 
   // FIX: UUIDs are strings, not numbers
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
-  const [filterStatus, setFilterStatus] = useState<FilterStatus>("all");
+  const [filterStatus, _setFilterStatus] = useState<FilterStatus>("all");
+  const setFilterStatus = (s: FilterStatus) => { _setFilterStatus(s); setPage(1); };
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [page, setPage] = useState(1);
 
   // Debounce search to avoid excessive API calls
   useEffect(() => {
     if (searchTimer.current) clearTimeout(searchTimer.current);
     searchTimer.current = setTimeout(() => {
       setDebouncedSearch(searchQuery);
+      setPage(1);
     }, 400);
     return () => {
       if (searchTimer.current) clearTimeout(searchTimer.current);
@@ -108,9 +112,10 @@ export default function SupportTicketsAdminPage() {
     useAdminListSupportTickets({
       status: filterStatus === "all" ? undefined : filterStatus,
       search: debouncedSearch || undefined,
-      page: 1,
-      limit: 50,
+      page,
+      limit: 20,
     });
+  const tickets = ticketsList?.data ?? [];
 
   const { data: ticketThread, isLoading: loadingThread } =
     useAdminSupportTicket(selectedTicketId ?? "", {
@@ -161,8 +166,6 @@ export default function SupportTicketsAdminPage() {
     }
   };
 
-  const tickets = ticketsList?.data ?? [];
-
   const sharedProps = {
     tickets,
     loadingList,
@@ -173,6 +176,10 @@ export default function SupportTicketsAdminPage() {
     searchQuery,
     setSearchQuery,
     ticketsList,
+    page,
+    setPage,
+    totalPages: ticketsList?.pagination?.totalPages ?? 1,
+    total: ticketsList?.pagination?.total ?? 0,
   };
 
   const detailProps = {
@@ -244,6 +251,10 @@ function TicketListPanel({
   searchQuery,
   setSearchQuery,
   ticketsList,
+  page,
+  setPage,
+  totalPages,
+  total,
 }: {
   tickets: Array<{ id: string; title: string; status: string; isReadByAdmin?: boolean; lastMessageAt?: Date | string | null; createdAt: Date | string; messageCount?: number }>;
   loadingList: boolean;
@@ -254,6 +265,10 @@ function TicketListPanel({
   searchQuery: string;
   setSearchQuery: (s: string) => void;
   ticketsList: { pagination?: { total?: number } } | undefined;
+  page: number;
+  setPage: (p: number) => void;
+  totalPages: number;
+  total: number;
 }) {
   return (
     <div className="flex flex-col bg-white border border-gray-200 rounded-2xl overflow-hidden min-h-0">
@@ -383,6 +398,11 @@ function TicketListPanel({
             })}
           </div>
         )}
+      </div>
+
+      {/* Pagination */}
+      <div className="p-3 border-t border-gray-100 shrink-0">
+        <AdminPagination page={page} totalPages={totalPages} onPageChange={setPage} />
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Subject } from "@/lib/api";
 import { useAdminFetch } from "@/hooks/useAdminFetch";
@@ -25,8 +25,8 @@ import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
 import { Trash2, Edit3, Check, X, BookOpen, BadgeCheck, AlertTriangle, FileText, ClipboardList, GraduationCap, ScrollText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
-import { ApiError } from "@/lib/api/client";
 import { AdminPagination } from "@/components/admin/AdminPagination";
+import { ApiError } from "@/lib/api/client";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -43,11 +43,34 @@ export default function SubjectsAdminPage() {
   const adminFetch = useAdminFetch();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const { data: subjects = [], isLoading } = useQuery<Subject[]>({
-    queryKey: ["admin", "subjects"],
-    queryFn: () => adminFetch<Subject[]>("/api/admin/subjects"),
+  const handleSearch = (v: string) => {
+    setSearch(v);
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    searchTimer.current = setTimeout(() => {
+      setDebouncedSearch(v);
+      setPage(1);
+    }, 400);
+  };
+
+  const { data: response, isLoading } = useQuery<{
+    data: Subject[];
+    pagination: { page: number; limit: number; total: number; totalPages: number };
+  }>({
+    queryKey: ["admin", "subjects", page, debouncedSearch],
+    queryFn: () => {
+      const sp = new URLSearchParams({ page: String(page), limit: "20" });
+      if (debouncedSearch.trim()) sp.set("search", debouncedSearch.trim());
+      return adminFetch(`/api/admin/subjects?${sp.toString()}`);
+    },
   });
+  const subjects = response?.data ?? [];
+  const totalPages = response?.pagination?.totalPages ?? 1;
+  const total = response?.pagination?.total ?? 0;
 
   const [name, setName] = useState("");
   const [examCategory, setExamCategory] = useState("General");
@@ -211,6 +234,15 @@ export default function SubjectsAdminPage() {
         </p>
       </div>
 
+      <div className="flex gap-2 max-w-lg">
+        <Input
+          value={search}
+          onChange={(e) => handleSearch(e.target.value)}
+          placeholder="Search subjects..."
+          className="rounded-xl h-11 w-full"
+        />
+      </div>
+
       <form onSubmit={createSubject} className="flex flex-col sm:flex-row gap-2 mb-4 max-w-lg">
         <Input
           value={name}
@@ -324,6 +356,8 @@ export default function SubjectsAdminPage() {
           </TableBody>
         </Table>
       )}
+
+      <AdminPagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
 
       <ConfirmDeleteDialog
         isOpen={deleteTargetId !== null}

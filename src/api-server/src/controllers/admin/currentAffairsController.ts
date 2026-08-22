@@ -22,16 +22,16 @@ export async function listAllCurrentAffairs(req: Request, res: Response, next: N
       page = "1",
       limit = "20",
       search = "",
-      filter = "all",
+      category = "all",
     } = req.query as Record<string, string>;
 
-    const p = Math.max(1, Number(page));
-    const l = Math.max(1, Number(limit));
+    const p = Math.max(1, parseInt(page, 10) || 1);
+    const l = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
     const offset = (p - 1) * l;
 
     const where = and(
       search ? ilike(currentAffairsTable.title, `%${search}%`) : undefined,
-      filter !== "all" ? eq(currentAffairsTable.category, filter) : undefined,
+      category !== "all" ? eq(currentAffairsTable.category, category) : undefined,
     );
 
     const [items, countRows] = await Promise.all([

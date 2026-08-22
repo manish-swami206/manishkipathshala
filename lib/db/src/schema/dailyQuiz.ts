@@ -18,6 +18,7 @@ export const dailyQuizzes = pgTable('daily_quizzes', {
   updatedAt: timestamp('updated_at').defaultNow(),
 }, (t) => [
   index('daily_quizzes_question_ids_idx').using('gin', t.questionIds),
+  index('daily_quizzes_scheduled_date_idx').on(t.scheduledDate),
 ]);
 
 export const insertDailyQuizSchema = createInsertSchema(dailyQuizzes).omit({ id: true, createdAt: true, updatedAt: true });

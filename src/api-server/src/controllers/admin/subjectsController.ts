@@ -125,15 +125,23 @@ interface SubjectReferenceCounts {
   total: number;
 }
 
+type SubjectRefEntry = {
+  label: keyof SubjectReferenceCounts;
+  table: typeof questionsTable | typeof examSetsTable | typeof mockTestsTable | typeof studyNotesTable | typeof previousYearPapersTable | typeof syllabusTable;
+  column: typeof questionsTable.subjectId | typeof examSetsTable.subjectId | typeof mockTestsTable.subjectId | typeof studyNotesTable.subjectId | typeof previousYearPapersTable.subjectId | typeof syllabusTable.subjectId;
+};
+
+const subjectRefTables: SubjectRefEntry[] = [
+  { label: "questions", table: questionsTable, column: questionsTable.subjectId },
+  { label: "examSets", table: examSetsTable, column: examSetsTable.subjectId },
+  { label: "mockTests", table: mockTestsTable, column: mockTestsTable.subjectId },
+  { label: "studyNotes", table: studyNotesTable, column: studyNotesTable.subjectId },
+  { label: "previousYearPapers", table: previousYearPapersTable, column: previousYearPapersTable.subjectId },
+  { label: "syllabus", table: syllabusTable, column: syllabusTable.subjectId },
+];
+
 async function getSubjectReferenceCounts(subjectId: string): Promise<SubjectReferenceCounts> {
-  const tables: { label: keyof SubjectReferenceCounts; table: any; column: any }[] = [
-    { label: "questions", table: questionsTable, column: (questionsTable as any).subjectId },
-    { label: "examSets", table: examSetsTable, column: (examSetsTable as any).subjectId },
-    { label: "mockTests", table: mockTestsTable, column: (mockTestsTable as any).subjectId },
-    { label: "studyNotes", table: studyNotesTable, column: (studyNotesTable as any).subjectId },
-    { label: "previousYearPapers", table: previousYearPapersTable, column: (previousYearPapersTable as any).subjectId },
-    { label: "syllabus", table: syllabusTable, column: (syllabusTable as any).subjectId },
-  ];
+  const tables = subjectRefTables;
 
   const results = await Promise.all(
     tables.map(async ({ label, table, column }) => {

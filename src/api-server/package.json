@@ -13,6 +13,7 @@
     "@clerk/express": "^2.1.22",
     "@clerk/shared": "^4.14.0",
     "@types/node-cache": "^4.2.5",
+    "@upstash/redis": "^1.38.2",
     "@workspace/db": "workspace:*",
     "bcryptjs": "^2.4.3",
     "cloudinary": "^2.6.0",

@@ -61,7 +61,7 @@ import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
 import { useToast } from "@/hooks/use-toast";
 import { useListSubjects } from "@/lib/api";
 import { useAdminFetch } from "@/hooks/useAdminFetch";
-import { ApiError } from "@/lib/api/client";
+import { ApiError, type ApiErrorBody } from "@/lib/api/client";
 import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
 import { CsvImportReview } from "@/components/admin/CsvImportReview";
 import {
@@ -302,8 +302,11 @@ export default function QuestionsAdminPage() {
       toast({ title: "Deleted", description: "Question removed." });
     },
     onError: (err: Error) => {
-      if (err instanceof ApiError && err.status === 409 && (err.body as any)?.warning) {
-        toast({ title: "Cannot delete", description: (err.body as any).message, variant: "destructive" });
+      if (err instanceof ApiError && err.status === 409) {
+        const body = err.body as ApiErrorBody & { warning?: boolean; message?: string };
+        if (body?.warning) {
+          toast({ title: "Cannot delete", description: body.message, variant: "destructive" });
+        }
         setDeleteId(null);
       } else {
         toast({ title: "Delete failed", variant: "destructive" });
@@ -325,10 +328,16 @@ export default function QuestionsAdminPage() {
       toast({ title: "Deleted", description: `${selectedIds.length} questions removed.` });
     },
     onError: (err: Error) => {
-      if (err instanceof ApiError && err.status === 409 && (err.body as any)?.warning) {
-        const body = err.body as any;
-        setDeleteWarning({ message: body.message, references: body.references, pendingIds: [...selectedIds] });
-        setBulkDeleteOpen(false);
+      if (err instanceof ApiError && err.status === 409) {
+        const body = err.body as ApiErrorBody & {
+          warning?: boolean;
+          message?: string;
+          references?: { examSets: number; mockTests: number; dailyQuizzes: number; total: number };
+        };
+        if (body?.warning) {
+          setDeleteWarning({ message: body.message ?? "", references: body.references ?? { examSets: 0, mockTests: 0, dailyQuizzes: 0, total: 0 }, pendingIds: [...selectedIds] });
+          setBulkDeleteOpen(false);
+        }
       } else {
         toast({ title: "Bulk delete failed", variant: "destructive" });
       }

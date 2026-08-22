@@ -54,7 +54,8 @@ export function cacheDel(key: string | string[]): void {
   const keys = Array.isArray(key) ? key : [key];
   for (const k of keys) memory.del(k);
   if (redis) {
-    redis.del(keys.map((k) => KEY_PREFIX + k)).catch((err: unknown) => {
+    const prefixed = keys.map((k) => KEY_PREFIX + k);
+    redis.del(...prefixed).catch((err: unknown) => {
       console.warn("[cache] redis del failed:", err instanceof Error ? err.message : err);
     });
   }
@@ -68,13 +69,8 @@ export function cacheFlushPattern(pattern: string): void {
   if (redis) {
     void (async () => {
       try {
-        const iterator = redis.scanIterator({
-          match: KEY_PREFIX + pattern + "*",
-          count: 200,
-        });
-        const found: string[] = [];
-        for await (const key of iterator) found.push(key);
-        if (found.length) await redis.del(found);
+        const matched = await redis.keys(KEY_PREFIX + pattern + "*");
+        if (matched.length) await redis.del(...matched);
       } catch (err) {
         console.warn(`[cache] redis flush failed for "${pattern}":`, err instanceof Error ? err.message : err);
       }

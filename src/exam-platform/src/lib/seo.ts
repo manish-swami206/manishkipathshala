@@ -50,7 +50,7 @@ export function buildMetadata({
   description = defaultDescription,
   keywords = defaultKeywords,
   path = "",
-  ogImage = `${BASE_URL}/og-image.png`,
+  ogImage = `${BASE_URL}/opengraph.jpg`,
   noIndex = false,
 }: SeoProps): Metadata {
   const fullTitle = `${title} | ${SITE_NAME}`;

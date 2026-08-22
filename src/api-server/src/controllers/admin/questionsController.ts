@@ -164,12 +164,20 @@ interface QuestionReferenceCounts {
   total: number;
 }
 
+type QuestionRefEntry = {
+  label: keyof QuestionReferenceCounts;
+  table: typeof examSetsTable | typeof mockTestsTable | typeof dailyQuizzes;
+  column: typeof examSetsTable.questionIds | typeof mockTestsTable.questionIds | typeof dailyQuizzes.questionIds;
+};
+
+const questionRefTables: QuestionRefEntry[] = [
+  { label: "examSets", table: examSetsTable, column: examSetsTable.questionIds },
+  { label: "mockTests", table: mockTestsTable, column: mockTestsTable.questionIds },
+  { label: "dailyQuizzes", table: dailyQuizzes, column: dailyQuizzes.questionIds },
+];
+
 async function getQuestionReferenceCounts(ids: string[]): Promise<QuestionReferenceCounts> {
-  const tables: { label: keyof QuestionReferenceCounts; table: any; column: any }[] = [
-    { label: "examSets", table: examSetsTable, column: (examSetsTable as any).questionIds },
-    { label: "mockTests", table: mockTestsTable, column: (mockTestsTable as any).questionIds },
-    { label: "dailyQuizzes", table: dailyQuizzes, column: (dailyQuizzes as any).questionIds },
-  ];
+  const tables = questionRefTables;
 
   const idArray = sql`ARRAY[${sql.join(ids.map((id) => sql`${id}::uuid`), sql`, `)}]`;
 
@@ -204,19 +212,17 @@ async function cleanupDeletedQuestionIds(ids: string[]) {
   const idExprs = ids.map((id) => sql`${id}::uuid`);
   const idArray = sql`ARRAY[${sql.join(idExprs, sql`, `)}]`;
 
-  const tables = [examSetsTable, mockTestsTable, dailyQuizzes];
-
-  for (const table of tables) {
+  for (const { table, column } of questionRefTables) {
     await db
-      .update(table as any)
+      .update(table)
       .set({
         questionIds: sql`(
           SELECT COALESCE(array_agg(elem), ARRAY[]::uuid[])
-          FROM unnest(${(table as any).questionIds}) AS elem
+          FROM unnest(${column}) AS elem
           WHERE elem != ALL(${idArray})
         )`,
       })
-      .where(sql`${(table as any).questionIds} && ${idArray}`);
+      .where(sql`${column} && ${idArray}`);
   }
 }
 

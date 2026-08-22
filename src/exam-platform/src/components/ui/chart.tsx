@@ -88,15 +88,31 @@ const ChartStyle = ({ id, config }: { id: string; config: LegendConfig }) => {
 
 const ChartTooltip = RechartsPrimitive.Tooltip;
 
+interface ChartTooltipContentProps {
+  active?: boolean;
+  payload?: Array<{
+    value?: number;
+    name?: string;
+    dataKey?: string;
+    color?: string;
+    payload?: Record<string, unknown>;
+  }>;
+  className?: string;
+  hideLabel?: boolean;
+  hideIndicator?: boolean;
+  indicator?: "line" | "dot" | "dashed";
+  label?: string;
+  labelFormatter?: (value: unknown, payload: unknown[]) => React.ReactNode;
+  labelClassName?: string;
+  formatter?: (value: unknown, name: unknown, props: unknown) => React.ReactNode;
+  color?: string;
+  nameKey?: string;
+  labelKey?: string;
+}
+
 const ChartTooltipContent = React.forwardRef<
   HTMLDivElement,
-  any & {
-    hideLabel?: boolean;
-    hideIndicator?: boolean;
-    indicator?: "line" | "dot" | "dashed";
-    nameKey?: string;
-    labelKey?: string;
-  }
+  ChartTooltipContentProps
 >(
   (
     {
@@ -171,7 +187,7 @@ const ChartTooltipContent = React.forwardRef<
       >
         {tooltipLabel}
         <div className="grid gap-1.5">
-          {payload.map((item: any, index: number) => {
+          {payload.map((item, index) => {
             const key = `${nameKey || item.name || item.dataKey || "value"}`;
             const itemConfig = getPayloadConfigFromPayload(config, item, key);
             const indicatorColor = color || item.payload?.fill || item.color;
@@ -245,10 +261,15 @@ const ChartLegend = RechartsPrimitive.Legend;
 const ChartLegendContent = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div"> & {
-    payload?: any[];
-    verticalAlign?: "top" | "bottom";
-    hideIcon?: boolean;
-    nameKey?: string;
+  payload?: Array<{
+    value?: string | number;
+    dataKey?: string;
+    name?: string;
+    color?: string;
+  }>;
+  verticalAlign?: "top" | "bottom";
+  hideIcon?: boolean;
+  nameKey?: string;
   }
 >(({ className, hideIcon = false, payload, verticalAlign, nameKey }, ref) => {
   const { config } = useChart();
@@ -298,7 +319,7 @@ ChartLegendContent.displayName = "ChartLegend";
 
 function getPayloadConfigFromPayload(
   config: LegendConfig,
-  payload: any,
+  payload: { payload?: Record<string, unknown>; [key: string]: unknown } | Record<string, unknown>,
   key: string,
 ) {
   if (typeof payload !== "object" || payload === null) {

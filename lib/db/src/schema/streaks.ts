@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, integer, boolean, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, integer, boolean, timestamp, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 
 export const userStreaksTable = pgTable("user_streaks", {
@@ -15,7 +15,10 @@ export const userStreaksTable = pgTable("user_streaks", {
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+}, (t) => [
+  index("user_streaks_total_points_idx").on(t.totalPoints),
+  index("user_streaks_created_at_idx").on(t.createdAt),
+]);
 
 export const insertUserStreakSchema = createInsertSchema(userStreaksTable).omit({ id: true, createdAt: true, updatedAt: true });
 export type InsertUserStreak = typeof userStreaksTable.$inferInsert;

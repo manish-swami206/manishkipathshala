@@ -29,6 +29,10 @@ export const examSetsTable = pgTable("exam_sets", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (t) => [
   index("exam_sets_question_ids_idx").using("gin", t.questionIds),
+  index("exam_sets_type_idx").on(t.type),
+  index("exam_sets_subject_id_idx").on(t.subjectId),
+  index("exam_sets_class_num_idx").on(t.classNum),
+  index("exam_sets_medium_idx").on(t.medium),
 ]);
 
 export const examSetsRelations = relations(examSetsTable, ({ one, many }) => ({

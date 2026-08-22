@@ -31,7 +31,7 @@ export async function getMyStreak(req: Request, res: Response, next: NextFunctio
     const [row] = await db
       .select()
       .from(userStreaksTable)
-      .where(eq(userStreaksTable.userId, userId));
+      .where(eq(userStreaksTable.userId, userId!));
 
     if (!row) {
       return res.json({
@@ -80,6 +80,8 @@ export async function recordActivity(req: Request, res: Response, next: NextFunc
   const pointsEarned = POINTS[activityType] ?? 5;
   const safeDisplayName = (displayName ?? "Learner").trim() || "Learner";
 
+  const safeUserId: string = userId;
+
   try {
     // Transaction + row lock prevents the read-modify-write race where two
     // concurrent activity posts double-increment streaks or collide on insert.
@@ -87,7 +89,7 @@ export async function recordActivity(req: Request, res: Response, next: NextFunc
       const [existing] = await tx
         .select()
         .from(userStreaksTable)
-        .where(eq(userStreaksTable.userId, userId))
+        .where(eq(userStreaksTable.userId, safeUserId))
         .for("update");
 
       if (!existing) {
@@ -120,7 +122,7 @@ export async function recordActivity(req: Request, res: Response, next: NextFunc
         const [raced] = await tx
           .select()
           .from(userStreaksTable)
-          .where(eq(userStreaksTable.userId, userId))
+          .where(eq(userStreaksTable.userId, safeUserId))
           .for("update");
         return applyActivity(tx, raced!);
       }
@@ -166,7 +168,7 @@ export async function recordActivity(req: Request, res: Response, next: NextFunc
         ...(activityType === "pyq" ? { pyqCount: row.pyqCount + 1 } : {}),
         updatedAt: new Date(),
       })
-      .where(eq(userStreaksTable.userId, userId))
+      .where(eq(userStreaksTable.userId, safeUserId))
       .returning();
 
     return {

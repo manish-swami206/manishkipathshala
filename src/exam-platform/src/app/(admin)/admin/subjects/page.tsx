@@ -26,6 +26,7 @@ import { Trash2, Edit3, Check, X, BookOpen, BadgeCheck, AlertTriangle, FileText,
 import { useToast } from "@/hooks/use-toast";
 import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
 import { ApiError } from "@/lib/api/client";
+import { AdminPagination } from "@/components/admin/AdminPagination";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -137,20 +138,37 @@ export default function SubjectsAdminPage() {
       toast({ title: "Deleted", description: "Subject deleted successfully" });
       invalidateSubjects();
     } catch (err: unknown) {
-      if (err instanceof ApiError && err.status === 409 && (err.body as Record<string, unknown>)?.warning) {
-        const body = err.body as { message: string; references: Record<string, number> };
-        setDeleteWarning({
-          message: body.message,
-          references: body.references as any,
-        });
-        setPendingDeleteId(id);
-        setDeleteId(null);
-      } else {
-        toast({
-          title: "Delete failed",
-          description: err instanceof Error ? err.message : String(err),
-          variant: "destructive",
-        });
+      if (err instanceof ApiError && err.status === 409) {
+        const body = err.body as {
+          message?: string;
+          warning?: boolean;
+          references?: {
+            questions: number;
+            examSets: number;
+            mockTests: number;
+            studyNotes: number;
+            previousYearPapers: number;
+            syllabus: number;
+            total: number;
+          };
+        };
+        if (body?.warning) {
+          setDeleteWarning({
+            message: body.message ?? "",
+            references: body.references ?? {
+              questions: 0, examSets: 0, mockTests: 0,
+              studyNotes: 0, previousYearPapers: 0, syllabus: 0, total: 0,
+            },
+          });
+          setPendingDeleteId(id);
+          setDeleteId(null);
+        } else {
+          toast({
+            title: "Delete failed",
+            description: err instanceof Error ? err.message : String(err),
+            variant: "destructive",
+          });
+        }
       }
     }
   };

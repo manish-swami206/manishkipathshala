@@ -84,12 +84,14 @@ When the user requests a durable behavior change, record it here or in the relev
 - **Purpose**: Drizzle ORM schema definitions, migrations, and DB instance
 - **Ownership**: All schema files (schema/*.ts), migration files, drizzle.config.ts
 - **Key files**: src/index.ts (DB instance), src/schema/index.ts (re-exports), drizzle.config.ts
+- **Index convention**: Tables use inline `(t) => [...]` index definitions. Columns used in WHERE/ORDER BY/GIN queries must have indexes. Unique constraints (`.unique()`) create implicit indexes — no separate index needed.
 - **Child AGENTS.md**: Not created yet — all DB concerns managed from root
 
 ### src/api-server/ — Express API Server
 - **Purpose**: Express server exposing JSON routes for all platform features
 - **Ownership**: Routes (src/routes/), middleware (src/middleware/), config (src/config/), services (src/services/), utils (src/utils/)
 - **Key files**: src/app.ts (Express setup), src/index.ts (entry point), src/routes/index.ts (router), src/config/env.ts (env schema)
+- **Type safety**: All controllers use typed table references (no `any` casts). QuestionRefEntry/SubjectRefEntry patterns for dynamic column access.
 - **Child AGENTS.md**: Not created yet — all API concerns managed from root
 
 ### src/exam-platform/ — Next.js Frontend
@@ -97,6 +99,8 @@ When the user requests a durable behavior change, record it here or in the relev
 - **Ownership**: Views (src/views/), components (src/components/), app routes (src/app/), API hooks (src/lib/api/), store (src/store/)
 - **Key files**: src/app/layout.tsx (root layout), src/app/providers.tsx (providers), src/lib/api/index.ts (API hooks), src/lib/types/api.ts (types)
 - **Routing pattern**: Features with a player use `/[feature]/[id]/play` for the player route (e.g., daily-quiz, mock-tests). The detail/instructions page is at `/[feature]/[id]` and the listing at `/[feature]`.
+- **SEO**: `lib/seo.ts` exports `buildMetadata()` factory and per-page metadata objects. Homepage uses `export const metadata = homeMetadata`. `sitemap.ts` generates static sitemap. OG image: `public/opengraph.jpg`.
+- **Type safety**: `ApiError.body` is `unknown` — cast with specific interfaces, not `as any`.
 - **Child AGENTS.md**: Not created yet — all frontend concerns managed from root
 
 ### scripts/ — Utility Scripts

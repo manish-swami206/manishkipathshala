@@ -1,2 +1,10 @@
 User-agent: *
 Allow: /
+Disallow: /admin
+Disallow: /profile
+Disallow: /result
+Disallow: /sign-in
+Disallow: /sign-up
+Disallow: /play
+
+Sitemap: https://manishkipathshala.com/sitemap.xml

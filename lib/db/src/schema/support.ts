@@ -25,6 +25,7 @@ export const supportTicketsTable = pgTable("support_tickets", {
 }, (t) => [
   index("support_tickets_user_idx").on(t.userId),
   index("support_tickets_status_idx").on(t.status),
+  index("support_tickets_is_read_by_admin_idx").on(t.isReadByAdmin),
 ]);
 
 export const supportMessagesTable = pgTable("support_messages", {

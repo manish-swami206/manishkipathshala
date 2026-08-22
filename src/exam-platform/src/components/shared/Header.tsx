@@ -7,7 +7,7 @@ import {
   useScroll,
   useTransform,
   AnimatePresence,
-} from "framer-motion";
+} from "motion/react";
 import {
   Sheet,
   SheetContent,

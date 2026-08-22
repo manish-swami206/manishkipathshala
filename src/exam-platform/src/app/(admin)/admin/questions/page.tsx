@@ -16,7 +16,7 @@ import {
   ChevronRight,
   FileSpreadsheet,
 } from "lucide-react";
-import { motion, AnimatePresence, type Variants } from "framer-motion";
+import { motion, AnimatePresence, type Variants } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -60,6 +60,7 @@ import {
 import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
 import { useToast } from "@/hooks/use-toast";
 import { useListSubjects } from "@/lib/api";
+import { invalidateCache } from "@/lib/api/cacheInvalidation";
 import { useAdminFetch } from "@/hooks/useAdminFetch";
 import { ApiError, type ApiErrorBody } from "@/lib/api/client";
 import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
@@ -264,8 +265,9 @@ export default function QuestionsAdminPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       }),
-    onSuccess: () => {
+    onSuccess: async () => {
       invalidate();
+      await invalidateCache("questions");
       toast({ title: "Created!", description: "Question added successfully." });
       setSheetOpen(false);
     },
@@ -282,8 +284,9 @@ export default function QuestionsAdminPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       }),
-    onSuccess: () => {
+    onSuccess: async () => {
       invalidate();
+      await invalidateCache("questions");
       toast({ title: "Saved!", description: "Question updated." });
       setSheetOpen(false);
     },
@@ -296,8 +299,9 @@ export default function QuestionsAdminPage() {
   const deleteMutation = useMutation({
     mutationFn: async (id: string) =>
       adminFetch<{ success?: boolean }>(`/api/admin/questions/${id}`, { method: "DELETE" }),
-    onSuccess: () => {
+    onSuccess: async () => {
       invalidate();
+      await invalidateCache("questions");
       setDeleteId(null);
       toast({ title: "Deleted", description: "Question removed." });
     },
@@ -321,8 +325,9 @@ export default function QuestionsAdminPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ids }),
       }),
-    onSuccess: () => {
+    onSuccess: async () => {
       invalidate();
+      await invalidateCache("questions");
       setSelectedIds([]);
       setBulkDeleteOpen(false);
       toast({ title: "Deleted", description: `${selectedIds.length} questions removed.` });
@@ -376,8 +381,9 @@ export default function QuestionsAdminPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ questions }),
       }),
-    onSuccess: (res) => {
+    onSuccess: async (res) => {
       invalidate();
+      await invalidateCache("questions");
       toast({ title: "Imported!", description: `Successfully uploaded ${res.count} questions.` });
     },
     onError: (err: Error) => {

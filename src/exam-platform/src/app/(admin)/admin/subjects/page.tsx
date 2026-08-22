@@ -37,7 +37,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 
 export default function SubjectsAdminPage() {
   const adminFetch = useAdminFetch();
@@ -68,7 +68,7 @@ export default function SubjectsAdminPage() {
       return adminFetch(`/api/admin/subjects?${sp.toString()}`);
     },
   });
-  const subjects = response?.data ?? [];
+  const subjects = Array.isArray(response?.data) ? response.data : [];
   const totalPages = response?.pagination?.totalPages ?? 1;
   const total = response?.pagination?.total ?? 0;
 

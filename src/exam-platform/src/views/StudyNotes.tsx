@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { PageTransition } from "@/components/shared/PageTransition";
 import { DocumentActionButton } from "@/components/shared/DocumentActionButton";
 import { useListStudyNotes, useListSubjects } from "@/lib/api";
@@ -27,18 +27,30 @@ import PageHeading from "@/components/shared/PageHeading";
 
 export default function StudyNotes() {
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [subject, setSubject] = useState<string>("all");
   const [medium, setMedium] = useState<string>("all");
   const [page, setPage] = useState(1);
 
-  // Reset to first page when filters change
+  // Debounce search input (400ms) to avoid firing on every keystroke
+  const handleSearch = (v: string) => {
+    setSearch(v);
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    searchTimer.current = setTimeout(() => {
+      setDebouncedSearch(v);
+      setPage(1);
+    }, 400);
+  };
+
+  // Reset to first page when non-search filters change
   useEffect(() => {
     setPage(1);
-  }, [search, subject, medium]);
+  }, [subject, medium]);
 
   const { data: pyqSubjects = [] } = useListSubjects();
   const { data, isLoading } = useListStudyNotes({
-    search: search || undefined,
+    search: debouncedSearch || undefined,
     subject: subject !== "all" ? subject : undefined,
     medium: medium !== "all" ? medium : undefined,
     page,
@@ -62,7 +74,7 @@ export default function StudyNotes() {
             placeholder="Search notes by title..."
             className="pl-9 w-full"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => handleSearch(e.target.value)}
           />
         </div>
         <div className="flex gap-2 w-full sm:w-auto">

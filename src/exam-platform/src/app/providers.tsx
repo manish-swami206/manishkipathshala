@@ -2,8 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { Provider as ReduxProvider } from "react-redux";
-import { store } from "@/store/store";
+import { UIProvider } from "@/components/providers/UIProvider";
 import { QueryProvider } from "@/components/providers/QueryProvider";
 import { RequireAuthProvider } from "@/components/shared/RequireAuthModal";
 const Toaster = dynamic(
@@ -24,7 +23,7 @@ export default function Providers({
   clerkEnabled?: boolean;
 }) {
   return (
-    <ReduxProvider store={store}>
+    <UIProvider>
       <QueryProvider>
         <TooltipProvider>
           <RequireAuthProvider>
@@ -34,6 +33,6 @@ export default function Providers({
           </RequireAuthProvider>
         </TooltipProvider>
       </QueryProvider>
-    </ReduxProvider>
+    </UIProvider>
   );
 }

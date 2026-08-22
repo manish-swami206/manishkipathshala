@@ -5,7 +5,7 @@ import { eq, desc, ilike, and, sql, type SQL } from "drizzle-orm";
 import { z } from "zod";
 import { routeParam } from "../../lib/routeParams";
 import { formatZodIssues } from "../../utils/validation";
-import { cacheFlushPattern } from "../../lib/cache";
+import { invalidateEntity } from "../../services/cacheInvalidation";
 import { AppError } from "../../middleware/errorHandler";
 
 const mockTestSchema = z.object({
@@ -90,7 +90,7 @@ export async function createMockTest(req: Request, res: Response, next: NextFunc
       .values(parsed.data)
       .returning();
 
-    cacheFlushPattern("mock-tests:");
+    invalidateEntity("mock-tests");
     return res.status(201).json(test);
   } catch (err) {
     return next(err);
@@ -113,7 +113,7 @@ export async function updateMockTest(req: Request, res: Response, next: NextFunc
     if (!updated)
       return next(new AppError(404, "Mock test not found"));
 
-    cacheFlushPattern("mock-tests:");
+    invalidateEntity("mock-tests");
     return res.json(updated);
   } catch (err) {
     return next(err);
@@ -124,7 +124,7 @@ export async function deleteMockTest(req: Request, res: Response, next: NextFunc
   try {
     const id = routeParam(req.params.id);
     await db.delete(mockTestsTable).where(eq(mockTestsTable.id, id));
-    cacheFlushPattern("mock-tests:");
+    invalidateEntity("mock-tests");
     return res.json({ success: true });
   } catch (err) {
     return next(err);

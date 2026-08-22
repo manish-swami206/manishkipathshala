@@ -23,6 +23,7 @@ export async function getDashboardStats(_req: Request, res: Response, next: Next
 
   try {
     const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
     const [
       [questionRow],
@@ -35,6 +36,9 @@ export async function getDashboardStats(_req: Request, res: Response, next: Next
       [currentAffairsRow],
       [openTicketsRow],
       recentActivity,
+      recentStudents,
+      activityChartRaw,
+      topQuizzes,
     ] = await Promise.all([
       db.select({ count: sql<number>`count(*)` }).from(questionsTable),
       db.select({ count: sql<number>`count(*)` }).from(studentAttemptsTable),
@@ -53,7 +57,54 @@ export async function getDashboardStats(_req: Request, res: Response, next: Next
         .from(activityLogsTable)
         .orderBy(desc(activityLogsTable.createdAt))
         .limit(10),
+      // Recent registered students
+      db
+        .select({
+          id: userStreaksTable.userId,
+          name: userStreaksTable.displayName,
+          email: sql<string>`''` ,
+          joinedAt: userStreaksTable.createdAt,
+        })
+        .from(userStreaksTable)
+        .orderBy(desc(userStreaksTable.createdAt))
+        .limit(5),
+      // Daily activity for engagement chart (last 30 days)
+      db
+        .select({
+          date: sql<string>`to_char(${activityLogsTable.createdAt}::timestamp, 'YYYY-MM-DD')`,
+          action: activityLogsTable.action,
+        })
+        .from(activityLogsTable)
+        .where(gte(activityLogsTable.createdAt, thirtyDaysAgo))
+        .orderBy(desc(activityLogsTable.createdAt)),
+      // Top quizzes by attempt count
+      db
+        .select({
+          title: sql<string>`coalesce(${studentAttemptsTable.examId}, 'Unknown')`,
+          attempts: sql<number>`count(*)`,
+        })
+        .from(studentAttemptsTable)
+        .groupBy(studentAttemptsTable.examId)
+        .orderBy(sql<number>`count(*) desc`)
+        .limit(5),
     ]);
+
+    // Transform raw activity logs into daily aggregates for the chart
+    const activityChartMap = new Map<string, { date: string; quizAttempts: number; newUsers: number }>();
+    for (const row of activityChartRaw) {
+      const date = row.date;
+      if (!activityChartMap.has(date)) {
+        activityChartMap.set(date, { date, quizAttempts: 0, newUsers: 0 });
+      }
+      const entry = activityChartMap.get(date)!;
+      if (row.action.startsWith("quiz") || row.action.startsWith("mock") || row.action.startsWith("pyq")) {
+        entry.quizAttempts++;
+      }
+      if (row.action === "user.created") {
+        entry.newUsers++;
+      }
+    }
+    const activityChart = Array.from(activityChartMap.values()).reverse();
 
     const data = {
       totalQuestions: Number(questionRow.count),
@@ -79,6 +130,14 @@ export async function getDashboardStats(_req: Request, res: Response, next: Next
         openSupportTickets: Number(openTicketsRow.count),
         storageUsedMb: 0,
       },
+      activityChart,
+      topQuizzes,
+      recentStudents: recentStudents.map((s) => ({
+        id: s.id,
+        name: s.name,
+        email: s.email,
+        joinedAt: s.joinedAt.toISOString(),
+      })),
     };
 
     await cacheSet(cacheKey, data, CacheTTL.ANALYTICS);

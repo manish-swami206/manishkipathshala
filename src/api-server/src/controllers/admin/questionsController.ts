@@ -3,7 +3,7 @@ import { db } from "../../db";
 import { questionsTable, examSetsTable, mockTestsTable, dailyQuizzes } from "@workspace/db";
 import { eq, ilike, and, sql, desc, inArray } from "drizzle-orm";
 import { z } from "zod";
-import { cacheDel, cacheFlushPattern } from "../../lib/cache";
+import { invalidateEntity } from "../../services/cacheInvalidation";
 import { routeParam } from "../../lib/routeParams";
 import { AppError } from "../../middleware/errorHandler";
 
@@ -97,9 +97,7 @@ export async function createQuestion(req: Request, res: Response, next: NextFunc
       .insert(questionsTable)
       .values(parsed.data)
       .returning();
-    cacheDel("admin:dashboard:stats");
-    cacheDel("admin:analytics:overview");
-    cacheFlushPattern("ncert-mcq:");
+    invalidateEntity("questions");
     res.status(201).json(created);
   } catch (err) {
     return next(err);
@@ -126,9 +124,7 @@ export async function bulkUploadQuestions(req: Request, res: Response, next: Nex
     }
 
     const inserted = await db.insert(questionsTable).values(parsedList).returning();
-    cacheDel("admin:dashboard:stats");
-    cacheDel("admin:analytics:overview");
-    cacheFlushPattern("ncert-mcq:");
+    invalidateEntity("questions");
     return res.status(201).json({ success: true, count: inserted.length });
   } catch (err) {
     return next(err);
@@ -150,7 +146,7 @@ export async function updateQuestion(req: Request, res: Response, next: NextFunc
     if (!updated) {
       return next(new AppError(404, "Question not found"));
     }
-    cacheFlushPattern("ncert-mcq:");
+    invalidateEntity("questions");
     res.json(updated);
   } catch (err) {
     return next(err);
@@ -244,9 +240,7 @@ export async function deleteQuestion(req: Request, res: Response, next: NextFunc
 
     await db.delete(questionsTable).where(eq(questionsTable.id, id));
     try { await cleanupDeletedQuestionIds([id]); } catch { /* non-critical cleanup */ }
-    cacheDel("admin:dashboard:stats");
-    cacheDel("admin:analytics:overview");
-    cacheFlushPattern("ncert-mcq:");
+    invalidateEntity("questions");
     res.json({ success: true });
   } catch (err) {
     return next(err);
@@ -274,8 +268,7 @@ export async function bulkDeleteQuestions(req: Request, res: Response, next: Nex
 
     await db.delete(questionsTable).where(inArray(questionsTable.id, ids));
     try { await cleanupDeletedQuestionIds(ids); } catch { /* non-critical cleanup */ }
-    cacheDel("admin:dashboard:stats");
-    cacheDel("admin:analytics:overview");
+    invalidateEntity("questions");
     res.json({ success: true, deletedCount: ids.length });
   } catch (err) {
     return next(err);

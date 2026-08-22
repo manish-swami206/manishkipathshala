@@ -4,7 +4,7 @@ import { studyNotesTable } from "@workspace/db";
 import { eq, ilike, and, sql, desc } from "drizzle-orm";
 import { z } from "zod";
 import { routeParam } from "../../lib/routeParams";
-import { cacheFlushPattern } from "../../lib/cache";
+import { invalidateEntity } from "../../services/cacheInvalidation";
 import { AppError } from "../../middleware/errorHandler";
 import { uploadToCloudinary } from "../../config/cloudinary";
 
@@ -105,7 +105,7 @@ export async function createStudyNote(req: Request, res: Response, next: NextFun
       .insert(studyNotesTable)
       .values(parsed.data)
       .returning();
-    cacheFlushPattern("study-notes:");
+    invalidateEntity("study-notes");
     res.status(201).json(note);
   } catch (err) {
     return next(err);
@@ -143,7 +143,7 @@ export async function updateStudyNote(req: Request, res: Response, next: NextFun
     if (!updated) {
       return next(new AppError(404, "Study note not found"));
     }
-    cacheFlushPattern("study-notes:");
+    invalidateEntity("study-notes");
     res.json(updated);
   } catch (err) {
     return next(err);
@@ -154,7 +154,7 @@ export async function deleteStudyNote(req: Request, res: Response, next: NextFun
   try {
     const id = routeParam(req.params.id);
     await db.delete(studyNotesTable).where(eq(studyNotesTable.id, id));
-    cacheFlushPattern("study-notes:");
+    invalidateEntity("study-notes");
     res.json({ success: true });
   } catch (err) {
     return next(err);

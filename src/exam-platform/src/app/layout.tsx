@@ -5,9 +5,32 @@ import Providers from "@/app/providers";
 import "@/index.css";
 import { clerkPublishableKey, isClerkConfigured } from "@/lib/clerk";
 
+const SITE_NAME = "Manish Ki Pathshala";
+
 export const metadata: Metadata = {
-  title: "Manish Ki Pathshala",
+  title: {
+    default: SITE_NAME,
+    template: `%s | ${SITE_NAME}`,
+  },
   description: "Premium exam preparation platform for UPSC, SSC, RAS and more",
+  icons: {
+    icon: "/favicon.svg",
+    shortcut: "/favicon.svg",
+  },
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL ?? "https://manishkipathshala.com",
+  ),
+  openGraph: {
+    siteName: SITE_NAME,
+    locale: "en_IN",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+  },
+  other: {
+    "theme-color": "#4F46E5",
+  },
 };
 
 const clerkAppearance = {

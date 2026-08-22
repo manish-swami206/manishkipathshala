@@ -4,7 +4,7 @@ import { subjects, questionsTable, examSetsTable, mockTestsTable, studyNotesTabl
 import { eq, ilike, and, sql, desc } from "drizzle-orm";
 import { z } from "zod";
 import { routeParam } from "../../lib/routeParams";
-import { cacheDel } from "../../lib/cache";
+import { invalidateEntity } from "../../services/cacheInvalidation";
 import { AppError } from "../../middleware/errorHandler";
 import { slugify } from "../../utils/slugify";
 
@@ -84,6 +84,7 @@ export async function createSubject(req: Request, res: Response, next: NextFunct
       .insert(subjects)
       .values({ name, slug, examCategory, description, isActive })
       .returning();
+    invalidateEntity("subjects");
     return res.status(201).json(subject);
   } catch (err) {
     return next(err);
@@ -109,6 +110,7 @@ export async function updateSubject(req: Request, res: Response, next: NextFunct
     if (!updated) {
       return next(new AppError(404, "Subject not found"));
     }
+    invalidateEntity("subjects");
     return res.json(updated);
   } catch (err) {
     return next(err);
@@ -199,8 +201,7 @@ export async function deleteSubject(req: Request, res: Response, next: NextFunct
 
     await db.delete(subjects).where(eq(subjects.id, id));
     await cleanupSubjectReferences(id);
-    cacheDel("admin:dashboard:stats");
-    cacheDel("admin:analytics:overview");
+    invalidateEntity("subjects");
     return res.json({ success: true });
   } catch (err) {
     return next(err);

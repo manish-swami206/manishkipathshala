@@ -7,7 +7,7 @@ import { routeParam } from "../../lib/routeParams";
 import { sanitizeHtml } from "../../utils/sanitize";
 import { formatZodIssues } from "../../utils/validation";
 import { AppError } from "../../middleware/errorHandler";
-import { clerkClient } from "@clerk/express";
+import { batchGetClerkUsers } from "../../lib/clerkBatch";
 
 const VALID_STATUSES = ["open", "pending", "resolved", "closed"] as const;
 type TicketStatus = (typeof VALID_STATUSES)[number];
@@ -82,26 +82,24 @@ export async function listAllSupportTickets(req: Request, res: Response, next: N
       .limit(limitNum)
       .offset(offset);
 
-    const enriched = await Promise.all(
-      tickets.map(async (t) => {
-        let userName = t.userId;
-        try {
-          const clerkUser = await clerkClient.users.getUser(t.userId);
-          const name = `${clerkUser.firstName ?? ""} ${clerkUser.lastName ?? ""}`.trim();
-          if (name) userName = name;
-        } catch {
-          // Clerk user not found, fall back to userId
-        }
-        return {
-          ...t,
-          userName,
-          createdAt: t.createdAt.toISOString(),
-          updatedAt: t.updatedAt.toISOString(),
-          lastMessageAt: t.lastMessageAt ? t.lastMessageAt.toISOString() : null,
-          userDeletedAt: t.userDeletedAt ? t.userDeletedAt.toISOString() : null,
-        };
-      }),
-    );
+    // Batch-fetch all Clerk users in one API call (up to 100 per chunk)
+    const uniqueUserIds = [...new Set(tickets.map((t) => t.userId))];
+    const clerkUsers = await batchGetClerkUsers(uniqueUserIds);
+
+    const enriched = tickets.map((t) => {
+      const clerk = clerkUsers.get(t.userId);
+      const userName = clerk
+        ? `${clerk.firstName} ${clerk.lastName}`.trim() || t.userId
+        : t.userId;
+      return {
+        ...t,
+        userName,
+        createdAt: t.createdAt.toISOString(),
+        updatedAt: t.updatedAt.toISOString(),
+        lastMessageAt: t.lastMessageAt ? t.lastMessageAt.toISOString() : null,
+        userDeletedAt: t.userDeletedAt ? t.userDeletedAt.toISOString() : null,
+      };
+    });
 
     res.json({
       data: enriched,

@@ -4,7 +4,7 @@ import { currentAffairsTable } from "@workspace/db";
 import { desc, sql, and, ilike, eq } from "drizzle-orm";
 import { z } from "zod";
 import { routeParam } from "../../lib/routeParams";
-import { cacheFlushPattern } from "../../lib/cache";
+import { invalidateEntity } from "../../services/cacheInvalidation";
 import { formatZodIssues } from "../../utils/validation";
 import { AppError } from "../../middleware/errorHandler";
 import { slugify } from "../../utils/slugify";
@@ -110,7 +110,7 @@ export async function createCurrentAffairAdmin(req: Request, res: Response, next
       .values(insertData)
       .returning();
 
-    cacheFlushPattern("current-affairs:");
+    invalidateEntity("current-affairs");
     return res.status(201).json({
       ...article,
       publishedAt: article.publishedAt
@@ -144,7 +144,7 @@ export async function updateCurrentAffairAdmin(req: Request, res: Response, next
 
     if (!updated) return next(new AppError(404, "Article not found"));
 
-    cacheFlushPattern("current-affairs:");
+    invalidateEntity("current-affairs");
     return res.json({
       ...updated,
       publishedAt: updated.publishedAt
@@ -164,7 +164,7 @@ export async function deleteCurrentAffairAdmin(req: Request, res: Response, next
     await db
       .delete(currentAffairsTable)
       .where(eq(currentAffairsTable.id, id));
-    cacheFlushPattern("current-affairs:");
+    invalidateEntity("current-affairs");
     return res.json({ success: true });
   } catch (err) {
     return next(err);

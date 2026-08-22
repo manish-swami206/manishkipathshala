@@ -211,7 +211,6 @@ export async function getLeaderboard(req: Request, res: Response, next: NextFunc
 
     const entries = rows.map((row, idx) => ({
       rank: idx + 1,
-      userId: row.userId,
       displayName: row.displayName,
       totalPoints: row.totalPoints,
       currentStreak: row.currentStreak,

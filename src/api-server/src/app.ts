@@ -1,6 +1,7 @@
 import express from "express";
 import helmet from "helmet";
 import cors from "cors";
+import compression from "compression";
 import { clerkMiddleware, createClerkClient } from "@clerk/express";
 import { env } from "./config/env";
 import { globalRateLimiter } from "./middleware/rateLimiter";
@@ -43,7 +44,18 @@ export function createApp() {
     }),
   );
 
-  // 5. Body parsing
+  // 5. Response compression — skip for webhooks and small responses
+  app.use(
+    compression({
+      filter: (req, res) => {
+        if (req.path.startsWith("/api/webhooks/")) return false;
+        return compression.filter(req, res);
+      },
+      threshold: 1024,
+    }),
+  );
+
+  // 6. Body parsing
   app.use(express.json({ limit: "5mb" }));
   app.use(express.urlencoded({ extended: true }));
 

@@ -3,7 +3,7 @@ import { db } from "../../lib/db";
 import { announcementsTable } from "@workspace/db";
 import { eq, sql, desc } from "drizzle-orm";
 import { z } from "zod";
-import { cacheDel } from "../../lib/cache";
+import { invalidateEntity } from "../../services/cacheInvalidation";
 import { routeParam } from "../../lib/routeParams";
 import { AppError } from "../../middleware/errorHandler";
 
@@ -89,7 +89,7 @@ export async function createAnnouncement(req: Request, res: Response, next: Next
       })
       .returning();
 
-    cacheDel("announcements:active");
+    invalidateEntity("announcements");
     return res.status(201).json({
       ...ann,
       createdAt: ann.createdAt.toISOString(),
@@ -115,7 +115,7 @@ export async function updateAnnouncement(req: Request, res: Response, next: Next
     if (!updated)
       return next(new AppError(404, "Announcement not found"));
 
-    cacheDel("announcements:active");
+    invalidateEntity("announcements");
     return res.json({
       ...updated,
       createdAt: updated.createdAt.toISOString(),
@@ -129,7 +129,7 @@ export async function deleteAnnouncement(req: Request, res: Response, next: Next
   try {
     const id = routeParam(req.params.id);
     await db.delete(announcementsTable).where(eq(announcementsTable.id, id));
-    cacheDel("announcements:active");
+    invalidateEntity("announcements");
     return res.json({ success: true });
   } catch (err) {
     return next(err);

@@ -33,13 +33,12 @@ import {
 import Link from "next/link";
 import { useAdminSupportUnreadCount } from "@/lib/api";
 import { NAV } from "./AdminSidebar";
-import { useAppDispatch } from "@/store/hooks";
-import { toggleMobileAdminSidebar } from "@/store/slices/uiSlice";
+import { useUI } from "@/components/providers/UIProvider";
 
 export function AdminHeader() {
   const pathname = usePathname();
   const router = useRouter();
-  const dispatch = useAppDispatch();
+  const { toggleAdminSidebar: toggleMobileSidebar } = useUI();
   const [searchOpen, setSearchOpen] = React.useState(false);
 
   const { data: unreadData, isLoading } = useAdminSupportUnreadCount({
@@ -77,7 +76,7 @@ export function AdminHeader() {
         <div className="min-w-0 flex items-center gap-2 lg:gap-6">
           {/* Mobile hamburger */}
           <button
-            onClick={() => dispatch(toggleMobileAdminSidebar())}
+            onClick={() => toggleMobileSidebar()}
             className="p-2 rounded-lg hover:bg-muted transition-colors lg:hidden shrink-0"
             aria-label="Open sidebar"
           >

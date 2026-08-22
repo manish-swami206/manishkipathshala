@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { requireAuth } from "../../middleware/auth";
 import { requireAdmin } from "../../middleware/adminMiddleware";
+import { strictRateLimiter } from "../../middleware/rateLimiter";
 
 import dashboardRouter from "./dashboard";
 import questionsRouter from "./questions";
@@ -18,6 +19,7 @@ import syllabusRouter from "./syllabus";
 import dailyQuizRouter from "./dailyQuiz";
 import examSetsRouter from "./examSets";
 import pypRouter from "./pyp";
+import cacheRouter from "./cache";
 
 const router = Router();
 
@@ -25,6 +27,15 @@ const router = Router();
 // clerkMiddleware is applied globally in app.ts
 router.use(requireAuth);
 router.use(requireAdmin);
+
+// Rate-limit write operations (POST/PATCH/DELETE) to prevent abuse
+router.use((req, res, next) => {
+  if (req.method === "POST" || req.method === "PATCH" || req.method === "DELETE") {
+    strictRateLimiter(req, res, next);
+    return;
+  }
+  next();
+});
 
 router.use(dashboardRouter);
 router.use(questionsRouter);
@@ -42,5 +53,6 @@ router.use(syllabusRouter);
 router.use(dailyQuizRouter);
 router.use(examSetsRouter);
 router.use(pypRouter);
+router.use(cacheRouter);
 
 export default router;

@@ -3,7 +3,7 @@ import { db } from "../../db";
 import { studentAttemptsTable, userStreaksTable } from "@workspace/db";
 import { eq, desc, sql, and, inArray } from "drizzle-orm";
 import { routeParam } from "../../lib/routeParams";
-import { clerkClient } from "@clerk/express";
+import { batchGetClerkUsers } from "../../lib/clerkBatch";
 
 export async function listAllStudents(req: Request, res: Response, next: NextFunction) {
   try {
@@ -56,33 +56,29 @@ export async function listAllStudents(req: Request, res: Response, next: NextFun
     // Step 3: Merge stats into a Map for O(1) lookup
     const statsMap = new Map(stats.map(s => [s.userId, s]));
 
-    const enriched = await Promise.all(
-      users.map(async (u) => {
-        const s = statsMap.get(u.userId);
-        let name = u.displayName || "Learner";
-        let email = "";
-        try {
-          const clerkUser = await clerkClient.users.getUser(u.userId);
-          name =
-            `${clerkUser.firstName ?? ""} ${clerkUser.lastName ?? ""}`.trim() ||
-            name;
-          email = clerkUser.emailAddresses[0]?.emailAddress ?? "";
-        } catch {
-          // Clerk might not be available or user not found
-        }
-        return {
-          userId: u.userId,
-          displayName: name,
-          email,
-          totalAttempts: s ? Number(s.totalAttempts) : 0,
-          avgScore: s ? Math.round(Number(s.avgScore) * 100) / 100 : 0,
-          totalScore: s ? Number(s.totalScore) : 0,
-          passedCount: s ? Number(s.passedCount) : 0,
-          lastAttemptAt: s?.lastAttemptAt ?? null,
-          joinedAt: u.createdAt.toISOString(),
-        };
-      }),
-    );
+    // Batch-fetch all Clerk users in one API call (up to 100 per chunk)
+    const clerkUsers = await batchGetClerkUsers(userIds);
+
+    const enriched = users.map((u) => {
+      const s = statsMap.get(u.userId);
+      const clerk = clerkUsers.get(u.userId);
+      const name =
+        clerk
+          ? `${clerk.firstName} ${clerk.lastName}`.trim() || u.displayName || "Learner"
+          : u.displayName || "Learner";
+      const email = clerk?.email ?? "";
+      return {
+        userId: u.userId,
+        displayName: name,
+        email,
+        totalAttempts: s ? Number(s.totalAttempts) : 0,
+        avgScore: s ? Math.round(Number(s.avgScore) * 100) / 100 : 0,
+        totalScore: s ? Number(s.totalScore) : 0,
+        passedCount: s ? Number(s.passedCount) : 0,
+        lastAttemptAt: s?.lastAttemptAt ?? null,
+        joinedAt: u.createdAt.toISOString(),
+      };
+    });
 
     res.json({
       data: enriched,

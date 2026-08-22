@@ -3,8 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { useAppSelector, useAppDispatch } from "@/store/hooks";
-import { toggleAdminSidebar, setMobileAdminSidebarOpen, toggleMobileAdminSidebar } from "@/store/slices/uiSlice";
+import { useUI } from "@/components/providers/UIProvider";
 import { useEffect } from "react";
 import {
   LayoutDashboard,
@@ -57,14 +56,12 @@ export const NAV = [
 
 export function AdminSidebar() {
   const pathname = usePathname();
-  const dispatch = useAppDispatch();
-  const collapsed = useAppSelector((s) => s.ui.adminSidebarCollapsed);
-  const mobileOpen = useAppSelector((s) => s.ui.mobileAdminSidebarOpen);
+  const { adminSidebarCollapsed: collapsed, mobileAdminSidebarOpen: mobileOpen, toggleAdminSidebar, setMobileAdminSidebarOpen } = useUI();
 
   // Close mobile sidebar on route change
   useEffect(() => {
-    dispatch(setMobileAdminSidebarOpen(false));
-  }, [pathname, dispatch]);
+    setMobileAdminSidebarOpen(false);
+  }, [pathname, setMobileAdminSidebarOpen]);
 
   // Lock body scroll when mobile sidebar is open
   useEffect(() => {
@@ -99,7 +96,7 @@ export function AdminSidebar() {
         )}
         {/* Desktop toggle button */}
         <button
-          onClick={() => dispatch(toggleAdminSidebar())}
+          onClick={() => toggleAdminSidebar()}
           className="p-1 rounded hover:bg-gray-100 transition-colors ml-auto cursor-pointer shrink-0 hidden lg:block"
           aria-label="Toggle sidebar"
         >
@@ -111,7 +108,7 @@ export function AdminSidebar() {
         </button>
         {/* Mobile close button */}
         <button
-          onClick={() => dispatch(setMobileAdminSidebarOpen(false))}
+          onClick={() => setMobileAdminSidebarOpen(false)}
           className="p-1 rounded hover:bg-gray-100 transition-colors ml-auto cursor-pointer shrink-0 lg:hidden"
           aria-label="Close sidebar"
         >
@@ -129,7 +126,7 @@ export function AdminSidebar() {
             <Link
               key={href}
               href={href}
-              onClick={() => dispatch(setMobileAdminSidebarOpen(false))}
+              onClick={() => setMobileAdminSidebarOpen(false)}
               className={cn(
                 "flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-colors cursor-pointer",
                 isActive
@@ -162,7 +159,7 @@ export function AdminSidebar() {
       {mobileOpen && (
         <div
           className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-          onClick={() => dispatch(setMobileAdminSidebarOpen(false))}
+          onClick={() => setMobileAdminSidebarOpen(false)}
         />
       )}
 

@@ -1,16 +1,29 @@
-"use client";
+import type { Metadata } from "next";
+import { Suspense } from "react";
+import { buildMetadata } from "@/lib/seo";
+import { PlayerSkeleton } from "@/components/shared/PageSkeleton";
+import NcertMcqPlayerWrapper from "@/components/shared/NcertMcqPlayerWrapper";
 
-import dynamic from "next/dynamic";
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
 
-const NcertMcqPlayer = dynamic(() => import("@/views/NcertMcqPlayer"), {
-  ssr: false,
-  loading: () => (
-    <div className="flex items-center justify-center min-h-[60vh]">
-      <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
-    </div>
-  ),
-});
+  return buildMetadata({
+    title: `NCERT MCQ Practice — ${slug}`,
+    description:
+      "Practice chapter-wise NCERT MCQs on Manish Ki Pathshala. Subject-wise questions for Classes 6-12 covering Science, History, Geography, and more.",
+    path: `/ncert-mcq/${slug}`,
+    keywords: ["NCERT MCQs", slug, "class 6 to 12", "NCERT practice"],
+  });
+}
 
 export default function NcertMcqPlayerPage() {
-  return <NcertMcqPlayer />;
+  return (
+    <Suspense fallback={<PlayerSkeleton />}>
+      <NcertMcqPlayerWrapper />
+    </Suspense>
+  );
 }

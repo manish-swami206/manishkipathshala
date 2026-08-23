@@ -195,8 +195,8 @@ export default function CurrentAffairDetail() {
                 </span>
               </div>
               <div
-                className="prose prose-sm max-w-none text-foreground text-sm leading-relaxed"
-                dangerouslySetInnerHTML={{ __html: article.content }}
+                className="prose prose-sm max-w-none text-foreground text-sm leading-relaxed whitespace-pre-wrap"
+                dangerouslySetInnerHTML={{ __html: article.content.replace(/\n/g, '<br />') }}
               />
             </div>
           )}

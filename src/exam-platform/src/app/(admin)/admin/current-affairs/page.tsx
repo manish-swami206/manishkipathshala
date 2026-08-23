@@ -639,8 +639,11 @@ export default function CurrentAffairsAdminPage() {
                   placeholder="Full article content..."
                   rows={8}
                   required
-                  className="rounded-xl border-border/70 resize-none focus-visible:ring-indigo-500/30 min-h-[200px]"
+                  className="rounded-xl border-border/70 resize-none focus-visible:ring-indigo-500/30 min-h-[200px] whitespace-pre-wrap"
                 />
+                <p className="text-[10px] text-gray-400 flex items-center gap-1">
+                  Press <kbd className="px-1 py-0.5 bg-gray-100 border border-gray-200 rounded text-[9px] font-mono">Enter</kbd> for new lines — they will appear on the website.
+                </p>
               </motion.div>
 
               <motion.div custom={3} variants={fieldVariants} initial="hidden" animate="visible" className="space-y-1.5">

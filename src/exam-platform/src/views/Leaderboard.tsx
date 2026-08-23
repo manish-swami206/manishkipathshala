@@ -37,9 +37,9 @@ function getInitials(name: string): string {
   return name.split(" ").map((w) => w[0] ?? "").join("").toUpperCase().slice(0, 2) || "??";
 }
 
-function getAvatarColor(userId: string): string {
+function getAvatarColor(key: string): string {
   let hash = 0;
-  for (let i = 0; i < userId.length; i++) hash = userId.charCodeAt(i) + ((hash << 5) - hash);
+  for (let i = 0; i < key.length; i++) hash = key.charCodeAt(i) + ((hash << 5) - hash);
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 }
 
@@ -65,7 +65,7 @@ function PodiumCard({ entry, pos }: { entry: LeaderboardEntry; pos: "first" | "s
     second: "w-9 h-9 bg-gray-400",
     third: "w-8 h-8 text-sm bg-amber-700",
   };
-  const avatarColor = getAvatarColor(entry.userId);
+  const avatarColor = getAvatarColor(entry.displayName);
   const displayFirst = entry.displayName.split(" ")[0] ?? entry.displayName;
 
   return (
@@ -160,10 +160,9 @@ export default function Leaderboard() {
                   </div>
                 </div>
 
-                {(top3.length < 3 ? entries : rest).map((entry, idx, arr) => (
-                  <div key={entry.userId} className={cn("flex items-center gap-3 px-4 py-3", idx !== arr.length - 1 && "border-b border-border/30")}>
+                {(top3.length < 3 ? entries : rest).map((entry, idx, arr) => (                    <div key={entry.displayName + entry.rank} className={cn("flex items-center gap-3 px-4 py-3", idx !== arr.length - 1 && "border-b border-border/30")}>
                     <span className="w-6 text-center text-sm font-extrabold text-muted-foreground shrink-0">{entry.rank}</span>
-                    <div className={cn("w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-extrabold shrink-0", getAvatarColor(entry.userId))}>
+                    <div className={cn("w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-extrabold shrink-0", getAvatarColor(entry.displayName))}>
                       {getInitials(entry.displayName)}
                     </div>
                     <div className="flex-1 min-w-0">

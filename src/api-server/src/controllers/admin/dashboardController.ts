@@ -80,10 +80,11 @@ export async function getDashboardStats(_req: Request, res: Response, next: Next
       // Top quizzes by attempt count
       db
         .select({
-          title: sql<string>`coalesce(${studentAttemptsTable.examId}, 'Unknown')`,
+          title: sql<string>`coalesce(${studentAttemptsTable.examId}::text, 'Unknown')`,
           attempts: sql<number>`count(*)`,
         })
         .from(studentAttemptsTable)
+        .where(sql`${studentAttemptsTable.examId} IS NOT NULL`)
         .groupBy(studentAttemptsTable.examId)
         .orderBy(sql<number>`count(*) desc`)
         .limit(5),

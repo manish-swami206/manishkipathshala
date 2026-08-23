@@ -38,7 +38,7 @@ import { useUI } from "@/components/providers/UIProvider";
 export function AdminHeader() {
   const pathname = usePathname();
   const router = useRouter();
-  const { toggleAdminSidebar: toggleMobileSidebar } = useUI();
+  const { setMobileAdminSidebarOpen } = useUI();
   const [searchOpen, setSearchOpen] = React.useState(false);
 
   const { data: unreadData, isLoading } = useAdminSupportUnreadCount({
@@ -76,7 +76,7 @@ export function AdminHeader() {
         <div className="min-w-0 flex items-center gap-2 lg:gap-6">
           {/* Mobile hamburger */}
           <button
-            onClick={() => toggleMobileSidebar()}
+            onClick={() => setMobileAdminSidebarOpen(true)}
             className="p-2 rounded-lg hover:bg-muted transition-colors lg:hidden shrink-0"
             aria-label="Open sidebar"
           >

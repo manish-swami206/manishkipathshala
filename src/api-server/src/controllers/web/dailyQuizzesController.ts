@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { db } from "../../lib/db";
 import { dailyQuizzes, questionsTable } from "@workspace/db";
-import { eq, and, inArray, gte } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { cacheGet, cacheSet, CacheTTL } from "../../lib/cache";
 import { routeParam } from "../../lib/routeParams";
 import { AppError } from "../../middleware/errorHandler";
@@ -27,11 +27,9 @@ function mapQuestion(q: {
 
 export async function listDailyQuizzes(req: Request, res: Response, next: NextFunction) {
   try {
-    const cacheKey = "daily-quizzes:today";
+    const cacheKey = "daily-quizzes:list";
     const cached = await cacheGet<unknown[]>(cacheKey);
     if (cached) { res.json(cached); return; }
-
-    const today = new Date().toISOString().split("T")[0];
 
     const quizzes = await db
       .select()
@@ -40,7 +38,6 @@ export async function listDailyQuizzes(req: Request, res: Response, next: NextFu
         and(
           eq(dailyQuizzes.isPublished, true),
           eq(dailyQuizzes.isActive, true),
-          gte(dailyQuizzes.scheduledDate, today),
         ),
       );
 

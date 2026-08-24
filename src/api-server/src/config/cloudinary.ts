@@ -1,5 +1,6 @@
 import { v2 as cloudinary } from "cloudinary";
 import { Readable } from "stream";
+import { AppError } from "../middleware/errorHandler";
 
 // Validate required env vars
 if (
@@ -44,8 +45,23 @@ export async function uploadToCloudinary(
         context: `original_name=${originalName}`,
       },
       (error, result) => {
-        if (error || !result)
+        if (error || !result) {
+          // Cloudinary rejects files above the account plan's cap
+          // (e.g. 10MB for raw files on the free plan). Surface a clear error.
+          const msg = (error as { message?: string } | undefined)?.message ?? "";
+          const maxMatch = msg.match(/Maximum is (\d+)/);
+          if (/file size too large/i.test(msg)) {
+            const maxBytes = maxMatch ? Number(maxMatch[1]) : 10 * 1024 * 1024;
+            const maxMB = (maxBytes / (1024 * 1024)).toFixed(0);
+            return reject(
+              new AppError(
+                413,
+                `File is too large for storage (limit: ${maxMB}MB on the current Cloudinary plan). Compress the PDF or upgrade the Cloudinary plan.`,
+              ),
+            );
+          }
           return reject(error ?? new Error("Cloudinary upload failed"));
+        }
         resolve({ secureUrl: result.secure_url, publicId: result.public_id });
       },
     );

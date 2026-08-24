@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { db } from "../../db";
 import { announcementsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { cacheGet, cacheSet, cacheDel, CacheTTL } from "../../lib/cache";
 
 export async function listAnnouncements(_req: Request, res: Response, next: NextFunction) {
@@ -17,7 +17,7 @@ export async function listAnnouncements(_req: Request, res: Response, next: Next
       .select()
       .from(announcementsTable)
       .where(eq(announcementsTable.isActive, true))
-      .orderBy(announcementsTable.createdAt);
+      .orderBy(desc(announcementsTable.createdAt));
 
     const serialized = announcements.map((a) => ({
       ...a,

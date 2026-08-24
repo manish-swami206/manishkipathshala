@@ -161,6 +161,7 @@ export default function MockTestPlayer() {
       saveAttempt={async (payload) => {
         return saveAttempt.mutateAsync({
           examId: id,
+          activityType: "mock",
           ...payload,
         });
       }}

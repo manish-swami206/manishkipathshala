@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { studyNotesTable } from "@workspace/db";
 import { db } from "../../db";
-import { ilike, and, eq, sql } from "drizzle-orm";
+import { ilike, and, eq, sql, desc } from "drizzle-orm";
 import { cacheGet, cacheSet, CacheTTL } from "../../lib/cache";
 
 export async function listStudyNotes(req: Request, res: Response, next: NextFunction) {
@@ -35,6 +35,7 @@ export async function listStudyNotes(req: Request, res: Response, next: NextFunc
         .select()
         .from(studyNotesTable)
         .where(where)
+        .orderBy(desc(studyNotesTable.createdAt))
         .limit(limit)
         .offset(offset),
     ]);

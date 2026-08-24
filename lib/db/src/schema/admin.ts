@@ -8,7 +8,10 @@ export const studentAttemptsTable = pgTable("student_attempts", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: text("user_id").notNull(),
   examId: uuid("exam_id"),
-  quizId: uuid("quiz_id"),
+  // Text (not uuid): PYQ stores subject slugs and NCERT stores set ids/slugs here
+  quizId: text("quiz_id"),
+  // Server-set classification used by points/leaderboard aggregation ('quiz' | 'mock' | 'pyq')
+  activityType: text("activity_type"),
   score: real("score").notNull().default(0),
   totalMarks: real("total_marks").notNull().default(0),
   correctCount: integer("correct_count").notNull().default(0),
@@ -19,7 +22,11 @@ export const studentAttemptsTable = pgTable("student_attempts", {
   attemptedAt: timestamp("attempted_at").notNull().defaultNow(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-}, (t) => [index("attempts_user_idx").on(t.userId), index("attempts_exam_idx").on(t.examId)]);
+}, (t) => [
+  index("attempts_user_idx").on(t.userId),
+  index("attempts_exam_idx").on(t.examId),
+  index("attempts_user_attempted_idx").on(t.userId, t.attemptedAt),
+]);
 
 export const activityLogsTable = pgTable("activity_logs", {
   id: uuid("id").defaultRandom().primaryKey(),

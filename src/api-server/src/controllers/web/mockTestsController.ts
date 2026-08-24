@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { mockTestsTable } from "@workspace/db";
 import { db } from "../../db";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, desc } from "drizzle-orm";
 import { cacheGet, cacheSet, CacheTTL } from "../../lib/cache";
 import { routeParam } from "../../lib/routeParams";
 import { AppError } from "../../middleware/errorHandler";
@@ -28,7 +28,7 @@ export async function listMockTests(req: Request, res: Response, next: NextFunct
         .select()
         .from(mockTestsTable)
         .where(where)
-        .orderBy(mockTestsTable.createdAt)
+        .orderBy(desc(mockTestsTable.createdAt))
         .limit(limitNum)
         .offset(offset),
     ]);

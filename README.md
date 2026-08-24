@@ -311,7 +311,7 @@ All UI components are built using **shadcn/ui** (Radix UI primitives + Tailwind 
 | Issue                   | Solution                                                               |
 | ----------------------- | ---------------------------------------------------------------------- |
 | API connection failed   | Ensure `NEXT_PUBLIC_API_URL` matches running API server port           |
-| Cloudinary upload fails | Verify credentials, file < 50MB, PDF/DOCX only                         |
+| Cloudinary upload fails | Verify credentials, file < 10MB (free-plan raw cap), PDF/DOCX only     |
 | DB connection error     | Check `DATABASE_URL`, ensure PostgreSQL is running                     |
 | TypeScript errors       | Run `pnpm run typecheck` and fix; clear `.tsbuildinfo` if stale        |
 | Clerk not working       | Verify both `CLERK_SECRET_KEY` and `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` |

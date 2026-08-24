@@ -56,7 +56,6 @@ import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
 import { useToast } from "@/hooks/use-toast";
 import { useListSubjects } from "@/lib/api";
 import { useAdminFetch } from "@/hooks/useAdminFetch";
-import { useAuth } from "@clerk/nextjs";
 import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
 import { AdminPagination } from "@/components/admin/AdminPagination";
 
@@ -118,7 +117,6 @@ export default function NcertAdminPage() {
   const { toast } = useToast();
   const qc = useQueryClient();
   const adminFetch = useAdminFetch();
-  const { getToken } = useAuth();
   const { data: pyqSubjects = [] } = useListSubjects();
   const [page, setPage] = useState(1);
 
@@ -183,18 +181,12 @@ export default function NcertAdminPage() {
 
   const createMutation = useMutation({
     mutationFn: async (data: FormData | Record<string, unknown>) => {
+      // Direct API call for FormData (bypasses Next.js rewrite — proxy caps request bodies ~4.5MB)
       if (data instanceof FormData) {
-        const token = await getToken();
-        const res = await fetch("/api/admin/ncert-books", {
+        return adminFetch<NcertBook>("/api/admin/ncert-books", {
           method: "POST",
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
           body: data,
         });
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err.error || "Upload failed");
-        }
-        return res.json();
       }
       return adminFetch<NcertBook>("/api/admin/ncert-books", {
         method: "POST",
@@ -216,18 +208,12 @@ export default function NcertAdminPage() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: FormData | Record<string, unknown> }) => {
+      // Direct API call for FormData (bypasses Next.js rewrite — proxy caps request bodies ~4.5MB)
       if (data instanceof FormData) {
-        const token = await getToken();
-        const res = await fetch(`/api/admin/ncert-books/${id}`, {
+        return adminFetch<NcertBook>(`/api/admin/ncert-books/${id}`, {
           method: "PATCH",
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
           body: data,
         });
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err.error || "Update failed");
-        }
-        return res.json();
       }
       return adminFetch<NcertBook>(`/api/admin/ncert-books/${id}`, {
         method: "PATCH",
@@ -655,7 +641,7 @@ export default function NcertAdminPage() {
                   <label htmlFor="ncert-file-input" className="cursor-pointer block">
                     <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                     <p className="text-sm font-semibold text-gray-700">{fileName || "Select PDF document"}</p>
-                    <p className="text-xs text-gray-400 mt-1">PDF max 50MB</p>
+                    <p className="text-xs text-gray-400 mt-1">PDF max 10MB</p>
                   </label>
                 </motion.div>
               ) : (

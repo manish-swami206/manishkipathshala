@@ -54,6 +54,11 @@ function StreakBadge({ streak }: { streak: number }) {
   );
 }
 
+/** Period tabs receive server-computed `periodPoints`; all-time falls back to totalPoints. */
+function displayScore(entry: LeaderboardEntry): number {
+  return entry.periodPoints ?? entry.totalPoints;
+}
+
 function PodiumCard({ entry, pos }: { entry: LeaderboardEntry; pos: "first" | "second" | "third" }) {
   const medals = { first: "🥇", second: "🥈", third: "🥉" };
   const sizes = { first: "w-16 h-16 text-lg", second: "w-[52px] h-[52px] text-base", third: "w-11 h-11 text-sm" };
@@ -78,7 +83,7 @@ function PodiumCard({ entry, pos }: { entry: LeaderboardEntry; pos: "first" | "s
       {entry.currentStreak > 0 && <StreakBadge streak={entry.currentStreak} />}
       <div className={cn("flex items-center gap-1 font-extrabold text-primary", scoreSize[pos])}>
         <Trophy className={cn("shrink-0", pos === "first" ? "w-4 h-4" : "w-3 h-3")} />
-        {entry.totalPoints.toLocaleString()}
+        {displayScore(entry).toLocaleString()}
       </div>
       <div className={cn("rounded-full flex items-center justify-center text-white font-bold shadow-md", rankSizes[pos])}>
         {entry.rank}
@@ -93,6 +98,7 @@ export default function Leaderboard() {
 
   const top3 = entries.slice(0, 3);
   const rest  = entries.slice(3);
+  const periodLabel = activeTab === "weekly" ? "pts this week" : activeTab === "monthly" ? "pts this month" : "pts";
 
   return (
     <PageTransition className="min-h-screen bg-gray-50 pb-6">
@@ -160,7 +166,7 @@ export default function Leaderboard() {
                   </div>
                 </div>
 
-                {(top3.length < 3 ? entries : rest).map((entry, idx, arr) => (                    <div key={entry.displayName + entry.rank} className={cn("flex items-center gap-3 px-4 py-3", idx !== arr.length - 1 && "border-b border-border/30")}>
+                {(top3.length < 3 ? entries : rest).map((entry, idx, arr) => (                    <div key={entry.rank} className={cn("flex items-center gap-3 px-4 py-3", idx !== arr.length - 1 && "border-b border-border/30")}>
                     <span className="w-6 text-center text-sm font-extrabold text-muted-foreground shrink-0">{entry.rank}</span>
                     <div className={cn("w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-extrabold shrink-0", getAvatarColor(entry.displayName))}>
                       {getInitials(entry.displayName)}
@@ -177,8 +183,8 @@ export default function Leaderboard() {
                       <span className="text-pink-600">{entry.pyqCount}</span>
                     </div>
                     <div className="text-right shrink-0 ml-1">
-                      <p className="text-sm font-extrabold text-primary">{entry.totalPoints.toLocaleString()}</p>
-                      <p className="text-[9px] text-muted-foreground">pts</p>
+                      <p className="text-sm font-extrabold text-primary">{displayScore(entry).toLocaleString()}</p>
+                      <p className="text-[9px] text-muted-foreground">{periodLabel}</p>
                     </div>
                   </div>
                 ))}
@@ -208,10 +214,10 @@ export default function Leaderboard() {
           </p>
           <div className="space-y-2">
             {[
-              { icon: Zap,      color: "text-teal-600 bg-teal-100",    label: "Quiz question correct",  pts: "+5 pts" },
+              { icon: Zap,      color: "text-teal-600 bg-teal-100",    label: "Daily quiz completed",   pts: "+5 pts" },
               { icon: BookOpen, color: "text-violet-600 bg-violet-100", label: "Mock test completed",    pts: "+50 pts" },
-              { icon: RotateCcw, color: "text-pink-600 bg-pink-100",   label: "PYQ solved correctly",   pts: "+3 pts" },
-              { icon: Flame,    color: "text-orange-600 bg-orange-100", label: "Daily streak bonus",     pts: "+20 pts" },
+              { icon: RotateCcw, color: "text-pink-600 bg-pink-100",   label: "PYQ set completed",      pts: "+3 pts" },
+              { icon: Flame,    color: "text-orange-600 bg-orange-100", label: "Daily login builds streak", pts: "+1 day" },
             ].map(({ icon: Icon, color, label, pts }) => (
               <div key={label} className="flex items-center gap-3">
                 <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center shrink-0", color.split(" ")[1])}>

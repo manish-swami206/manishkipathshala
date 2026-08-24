@@ -55,7 +55,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
-import { useAuth } from "@clerk/nextjs";
 import { useToast } from "@/hooks/use-toast";
 import { useListSubjects } from "@/lib/api";
 import { useAdminFetch } from "@/hooks/useAdminFetch";
@@ -116,7 +115,6 @@ const fieldVariants: Variants = {
 export default function StudyNotesAdminPage() {
   const { toast } = useToast();
   const qc = useQueryClient();
-  const { getToken } = useAuth();
   const adminFetch = useAdminFetch();
   const { data: pyqSubjects = [] } = useListSubjects();
   const [page, setPage] = useState(1);
@@ -278,17 +276,11 @@ export default function StudyNotesAdminPage() {
           formData.append("medium", formMedium);
           formData.append("file", noteFile);
 
-          const token = await getToken();
-          const res = await fetch("/api/admin/study-notes/" + editingItem.id, {
+          // Direct API call (bypasses Next.js rewrite — proxy caps request bodies ~4.5MB)
+          await adminFetch<StudyNote>(`/api/admin/study-notes/${editingItem.id}`, {
             method: "PATCH",
-            headers: token ? { Authorization: `Bearer ${token}` } : {},
             body: formData,
           });
-
-          if (!res.ok) {
-            const err = await res.json().catch(() => ({}));
-            throw new Error(err.error || "Upload failed");
-          }
 
           invalidate();
           toast({ title: "Updated!", description: "Study note with PDF uploaded." });
@@ -320,17 +312,11 @@ export default function StudyNotesAdminPage() {
           formData.append("medium", formMedium);
           formData.append("file", noteFile);
 
-          const token = await getToken();
-          const res = await fetch("/api/admin/study-notes", {
+          // Direct API call (bypasses Next.js rewrite — proxy caps request bodies ~4.5MB)
+          await adminFetch<StudyNote>("/api/admin/study-notes", {
             method: "POST",
-            headers: token ? { Authorization: `Bearer ${token}` } : {},
             body: formData,
           });
-
-          if (!res.ok) {
-            const err = await res.json().catch(() => ({}));
-            throw new Error(err.error || "Upload failed");
-          }
 
           invalidate();
           toast({ title: "Created!", description: "Study note with PDF uploaded." });
@@ -679,7 +665,7 @@ export default function StudyNotesAdminPage() {
                     <label htmlFor="study-note-file-input" className="cursor-pointer block">
                       <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                       <p className="text-sm font-semibold text-gray-700">{noteFileName || "Select PDF document"}</p>
-                      <p className="text-xs text-gray-400 mt-1">PDF max 50MB</p>
+                      <p className="text-xs text-gray-400 mt-1">PDF max 10MB</p>
                     </label>
                   </div>
                 ) : (

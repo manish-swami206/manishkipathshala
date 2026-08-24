@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { db } from "../../db";
 import { ncertBooksTable, questionsTable, examSetsTable } from "@workspace/db";
-import { eq, inArray, and, sql } from "drizzle-orm";
+import { eq, inArray, and, sql, desc } from "drizzle-orm";
 import { cacheGet, cacheSet, CacheTTL } from "../../lib/cache";
 
 function mapQuestion(q: {
@@ -73,7 +73,8 @@ export async function getNcertMcqQuestions(req: Request, res: Response, next: Ne
     let all = await db
       .select()
       .from(questionsTable)
-      .where(and(inArray(questionsTable.id, uniqueIds), eq(questionsTable.isActive, true)));
+      .where(and(inArray(questionsTable.id, uniqueIds), eq(questionsTable.isActive, true)))
+      .orderBy(desc(questionsTable.createdAt));
 
     if (classNum) all = all.filter((q) => q.classNum === parseInt(classNum, 10));
     if (subject) all = all.filter((q) => q.subject?.toLowerCase() === subject.toLowerCase());
@@ -101,7 +102,7 @@ export async function getNcertMcqSets(req: Request, res: Response, next: NextFun
       .select()
       .from(examSetsTable)
       .where(and(...conditions))
-      .orderBy(examSetsTable.createdAt);
+      .orderBy(desc(examSetsTable.createdAt));
 
     res.json(sets.map((s) => ({
       ...s,

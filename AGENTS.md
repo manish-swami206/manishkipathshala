@@ -85,6 +85,7 @@ When the user requests a durable behavior change, record it here or in the relev
 - **Ownership**: All schema files (schema/*.ts), migration files, drizzle.config.ts
 - **Key files**: src/index.ts (DB instance), src/schema/index.ts (re-exports), drizzle.config.ts
 - **Index convention**: Tables use inline `(t) => [...]` index definitions. Columns used in WHERE/ORDER BY/GIN queries must have indexes. Unique constraints (`.unique()`) create implicit indexes — no separate index needed.
+- **Schema contracts**: `student_attempts.quiz_id` is TEXT (not uuid) — PYQ stores subject slugs and NCERT stores set ids there; `student_attempts.activity_type` is server-set ('quiz'|'mock'|'pyq'), never trusted from clients for ranking math.
 - **Child AGENTS.md**: Not created yet — all DB concerns managed from root
 
 ### src/api-server/ — Express API Server
@@ -92,6 +93,8 @@ When the user requests a durable behavior change, record it here or in the relev
 - **Ownership**: Routes (src/routes/), middleware (src/middleware/), config (src/config/), services (src/services/), utils (src/utils/)
 - **Key files**: src/app.ts (Express setup), src/index.ts (entry point), src/routes/index.ts (router), src/config/env.ts (env schema)
 - **Type safety**: All controllers use typed table references (no `any` casts). QuestionRefEntry/SubjectRefEntry patterns for dynamic column access.
+- **Streaks/points contract**: All streak and point logic lives in src/services/streakMath.ts (pure, unit-tested) + streakService.ts (DB application). Rewards are recorded server-side inside POST /attempts only; POST /streaks/activity accepts "login" exclusively. Leaderboard period boards aggregate verified attempts.
+- **Verification**: `pnpm test` (vitest) — pure-helper suites in src/__tests__/services must pass with no DATABASE_URL; admin/routes suites have pre-existing failures (see issue.md).
 - **Child AGENTS.md**: Not created yet — all API concerns managed from root
 
 ### src/exam-platform/ — Next.js Frontend
@@ -100,6 +103,8 @@ When the user requests a durable behavior change, record it here or in the relev
 - **Key files**: src/app/layout.tsx (root layout), src/app/providers.tsx (providers), src/lib/api/index.ts (API hooks), src/lib/types/api.ts (types)
 - **Routing pattern**: Features with a player use `/[feature]/[id]/play` for the player route (e.g., daily-quiz, mock-tests). The detail/instructions page is at `/[feature]/[id]` and the listing at `/[feature]`.
 - **SEO**: `lib/seo.ts` exports `buildMetadata()` factory and per-page metadata objects. Homepage uses `export const metadata = homeMetadata`. `sitemap.ts` generates static sitemap. OG image: `public/opengraph.jpg`.
+- **File upload contract**: All multipart uploads (FormData) MUST go through `adminFetch`/`apiFetch` (direct to `NEXT_PUBLIC_API_URL`). Never raw-fetch relative `/api/...` paths — those proxy through the Next.js rewrite, and the Vercel function body cap (~4.5MB) rejects large PDFs before Express sees them. `apiFetch` already skips Content-Type for FormData so the browser sets the multipart boundary. Requires frontend origin in api-server `ALLOWED_ORIGINS` (CORS).
+- **Effective upload size ceiling**: multer allows 50MB, but Cloudinary's account plan caps raw files (10MB on free tier) and rejects with "File size too large". `uploadToCloudinary` maps that to `AppError(413)` with a clear message; admin UI labels show the current plan limit. Raising the ceiling requires a Cloudinary plan upgrade, not code changes.
 - **Type safety**: `ApiError.body` is `unknown` — cast with specific interfaces, not `as any`.
 - **Child AGENTS.md**: Not created yet — all frontend concerns managed from root
 

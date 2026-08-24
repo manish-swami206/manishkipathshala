@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { db } from "../../lib/db";
 import { dailyQuizzes, questionsTable } from "@workspace/db";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, desc } from "drizzle-orm";
 import { cacheGet, cacheSet, CacheTTL } from "../../lib/cache";
 import { routeParam } from "../../lib/routeParams";
 import { AppError } from "../../middleware/errorHandler";
@@ -39,7 +39,8 @@ export async function listDailyQuizzes(req: Request, res: Response, next: NextFu
           eq(dailyQuizzes.isPublished, true),
           eq(dailyQuizzes.isActive, true),
         ),
-      );
+      )
+      .orderBy(desc(dailyQuizzes.createdAt));
 
     const result = quizzes.map((q) => ({
       id: q.id,

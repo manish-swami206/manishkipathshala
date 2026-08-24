@@ -109,6 +109,8 @@ export interface LeaderboardEntry {
   rank: number;
   displayName: string;
   totalPoints: number;
+  /** Points earned within the active weekly/monthly period (absent on all-time). */
+  periodPoints?: number;
   currentStreak: number;
   longestStreak: number;
   quizCount: number;
@@ -374,6 +376,8 @@ export interface StudentAttempt {
   timeTakenSecs: number;
   isPassed: boolean;
   attemptedAt: string;
+  /** Points awarded for this attempt server-side (0 for retakes). */
+  pointsEarned?: number;
 }
 
 // ── Question Response (Admin) ────────────────────────────────────────────

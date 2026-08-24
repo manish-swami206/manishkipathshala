@@ -53,7 +53,7 @@ export async function listAllQuestions(req: Request, res: Response, next: NextFu
       .select()
       .from(questionsTable)
       .where(where)
-      .orderBy(desc(questionsTable.id))
+      .orderBy(desc(questionsTable.createdAt))
       .limit(limitNum)
       .offset(offset);
 

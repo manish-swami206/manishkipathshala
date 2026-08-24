@@ -34,7 +34,11 @@ function StreakToast({
           <p className="font-extrabold text-sm leading-tight">
             {streak === 1 ? "Streak started! 🔥" : `${streak} day streak! 🔥`}
           </p>
-          <p className="text-xs text-gray-400 mt-0.5">+{pointsEarned} points earned today</p>
+          <p className="text-xs text-gray-400 mt-0.5">
+            {pointsEarned > 0
+              ? `+${pointsEarned} points earned today`
+              : "Come back tomorrow to keep it alive!"}
+          </p>
         </div>
         <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors shrink-0 ml-1">
           <X className="w-4 h-4" />

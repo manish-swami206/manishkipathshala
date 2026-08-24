@@ -43,6 +43,13 @@
       "when": 1787404432727,
       "tag": "0005_add_performance_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1787556602337,
+      "tag": "0006_attempts_text_quizid_and_activity_type",
+      "breakpoints": true
     }
   ]
 }

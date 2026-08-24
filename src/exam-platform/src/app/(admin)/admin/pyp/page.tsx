@@ -15,7 +15,6 @@ import {
 } from "lucide-react";
 import { useListSubjects } from "@/lib/api";
 import { useAdminFetch } from "@/hooks/useAdminFetch";
-import { useAuth } from "@clerk/nextjs";
 import { useToast } from "@/hooks/use-toast";
 import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
 import { AdminPagination } from "@/components/admin/AdminPagination";
@@ -76,7 +75,6 @@ export default function PypAdminPage() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<PypPaper | null>(null);
   const [deleteTargetId, setDeleteId] = useState<string | null>(null);
-  const { getToken } = useAuth();
   const adminFetch = useAdminFetch();
 
   // Form state
@@ -262,22 +260,16 @@ export default function PypAdminPage() {
         if (paperFile) formData.append("paperFile", paperFile);
         if (answerKeyFile) formData.append("answerKeyFile", answerKeyFile);
 
-        const token = await getToken();
+        // Direct API call (bypasses Next.js rewrite — proxy caps request bodies ~4.5MB)
         const endpoint = editingItem
           ? `/api/admin/pyp/${editingItem.id}`
           : "/api/admin/pyp";
         const method = editingItem ? "PATCH" : "POST";
 
-        const res = await fetch(endpoint, {
+        await adminFetch<Record<string, unknown>>(endpoint, {
           method,
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
           body: formData,
         });
-
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err.error || "Upload failed");
-        }
 
         queryClient.invalidateQueries({ queryKey: ["admin", "pyp"] });
         setSheetOpen(false);
@@ -593,7 +585,7 @@ export default function PypAdminPage() {
                   <label htmlFor="pyp-file-input" className="cursor-pointer block">
                     <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                     <p className="text-sm font-semibold text-gray-700">{paperFileName || "Select Question Paper PDF"}</p>
-                    <p className="text-xs text-gray-400 mt-1">PDF max 50MB</p>
+                    <p className="text-xs text-gray-400 mt-1">PDF max 10MB</p>
                   </label>
                 </div>
                 <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center cursor-pointer hover:border-emerald-500 transition-all hover:bg-emerald-50/20">

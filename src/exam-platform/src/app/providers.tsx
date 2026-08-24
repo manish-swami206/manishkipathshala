@@ -10,11 +10,6 @@ const Toaster = dynamic(
   { ssr: false },
 );
 
-const StreakInitializer = dynamic(
-  () => import("@/components/shared/StreakInitializer").then((m) => ({ default: m.StreakInitializer })),
-  { ssr: false },
-);
-
 export default function Providers({
   children,
   clerkEnabled: _clerkEnabled,
@@ -29,7 +24,6 @@ export default function Providers({
           <RequireAuthProvider>
             {children}
             <Toaster />
-            <StreakInitializer />
           </RequireAuthProvider>
         </TooltipProvider>
       </QueryProvider>

@@ -111,6 +111,7 @@ export default function PyqQuestions() {
       saveAttempt={async (payload) => {
         return saveAttempt.mutateAsync({
           quizId: subjectSlug,
+          activityType: "pyq",
           ...payload,
         });
       }}

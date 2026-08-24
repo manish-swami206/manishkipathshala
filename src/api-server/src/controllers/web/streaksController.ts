@@ -1,24 +1,19 @@
 import type { Request, Response, NextFunction } from "express";
 import { getAuth } from "@clerk/express";
-import { userStreaksTable } from "@workspace/db";
+import { userStreaksTable, studentAttemptsTable } from "@workspace/db";
 import { db } from "../../db";
-import { eq, desc, gte, and } from "drizzle-orm";
+import { eq, desc, gte, and, asc, sql } from "drizzle-orm";
 import { AppError } from "../../middleware/errorHandler";
-
-const POINTS: Record<string, number> = {
-  quiz: 5,
-  mock: 50,
-  pyq: 3,
-  login: 0,
-};
-
-function todayStr(): string {
-  return new Date().toISOString().split("T")[0];
-}
-
-function yesterdayStr(): string {
-  return new Date(Date.now() - 86_400_000).toISOString().split("T")[0];
-}
+import {
+  applyUserActivity,
+  attemptPointsSql,
+  effectiveCurrentStreak,
+  monthStartUtcStr,
+  sanitizeLimit,
+  todayStr,
+  weekStartUtcStr,
+  yesterdayStr,
+} from "../../services/streakService";
 
 // GET /streaks/me — requires auth
 export async function getMyStreak(req: Request, res: Response, next: NextFunction) {
@@ -31,7 +26,7 @@ export async function getMyStreak(req: Request, res: Response, next: NextFunctio
     const [row] = await db
       .select()
       .from(userStreaksTable)
-      .where(eq(userStreaksTable.userId, userId!));
+      .where(eq(userStreaksTable.userId, userId));
 
     if (!row) {
       return res.json({
@@ -45,8 +40,14 @@ export async function getMyStreak(req: Request, res: Response, next: NextFunctio
       });
     }
 
+    // Stale streaks read as broken: only today/yesterday activity keeps one alive.
     return res.json({
-      currentStreak: row.currentStreak,
+      currentStreak: effectiveCurrentStreak(
+        row.currentStreak,
+        row.lastActivityDate,
+        todayStr(),
+        yesterdayStr(),
+      ),
       longestStreak: row.longestStreak,
       totalPoints: row.totalPoints,
       quizCount: row.quizCount,
@@ -60,6 +61,8 @@ export async function getMyStreak(req: Request, res: Response, next: NextFunctio
 }
 
 // POST /streaks/activity — requires auth
+// Login-only by design: quiz/mock/pyq rewards flow exclusively through verified
+// attempt saves (POST /attempts), so this endpoint cannot farm points.
 export async function recordActivity(req: Request, res: Response, next: NextFunction) {
   const { userId } = getAuth(req);
   if (!userId) {
@@ -71,149 +74,121 @@ export async function recordActivity(req: Request, res: Response, next: NextFunc
     displayName?: string;
   };
 
-  if (!activityType || !["quiz", "mock", "pyq", "login"].includes(activityType)) {
-    return next(new AppError(400, "activityType must be quiz | mock | pyq | login"));
+  if (activityType !== "login") {
+    return next(new AppError(400, "activityType must be login; quiz/mock/pyq rewards are recorded server-side on attempt save"));
   }
 
-  const today = todayStr();
-  const yesterday = yesterdayStr();
-  const pointsEarned = POINTS[activityType] ?? 5;
-  const safeDisplayName = (displayName ?? "Learner").trim() || "Learner";
-
-  const safeUserId: string = userId;
-
   try {
-    // Transaction + row lock prevents the read-modify-write race where two
-    // concurrent activity posts double-increment streaks or collide on insert.
-    const result = await db.transaction(async (tx) => {
-      const [existing] = await tx
-        .select()
-        .from(userStreaksTable)
-        .where(eq(userStreaksTable.userId, safeUserId))
-        .for("update");
-
-      if (!existing) {
-        const [inserted] = await tx
-          .insert(userStreaksTable)
-          .values({
-            userId,
-            displayName: safeDisplayName,
-            currentStreak: 1,
-            longestStreak: 1,
-            totalPoints: pointsEarned,
-            quizCount: activityType === "quiz" ? 1 : 0,
-            mockCount: activityType === "mock" ? 1 : 0,
-            pyqCount: activityType === "pyq" ? 1 : 0,
-            lastActivityDate: today,
-          })
-          .onConflictDoNothing()
-          .returning();
-
-        if (inserted) {
-          return {
-            currentStreak: 1,
-            longestStreak: 1,
-            totalPoints: pointsEarned,
-            pointsEarned,
-            streakIncremented: true,
-          };
-        }
-        // Lost the unique-insert race — fall through by re-selecting locked row
-        const [raced] = await tx
-          .select()
-          .from(userStreaksTable)
-          .where(eq(userStreaksTable.userId, safeUserId))
-          .for("update");
-        return applyActivity(tx, raced!);
-      }
-
-      return applyActivity(tx, existing);
-    });
+    const result = await db.transaction(async (tx) =>
+      applyUserActivity(tx, {
+        userId,
+        activityType: "login",
+        // Sanitized inside applyUserActivity before storage.
+        displayName,
+      }),
+    );
 
     return res.json(result);
   } catch (err) {
     return next(err);
   }
-
-  async function applyActivity(
-    tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
-    row: typeof userStreaksTable.$inferSelect,
-  ) {
-    const alreadyToday = row.lastActivityDate === today;
-    let newStreak = row.currentStreak;
-    let streakIncremented = false;
-
-    if (!alreadyToday) {
-      if (row.lastActivityDate === yesterday) {
-        newStreak = row.currentStreak + 1;
-      } else {
-        newStreak = 1;
-      }
-      streakIncremented = true;
-    }
-
-    const newLongest = Math.max(row.longestStreak, newStreak);
-    const newPoints = row.totalPoints + pointsEarned;
-
-    const [updated] = await tx
-      .update(userStreaksTable)
-      .set({
-        displayName: safeDisplayName,
-        ...(activityType === "login" ? {} : { totalPoints: newPoints }),
-        currentStreak: newStreak,
-        longestStreak: newLongest,
-        lastActivityDate: today,
-        ...(activityType === "quiz" ? { quizCount: row.quizCount + 1 } : {}),
-        ...(activityType === "mock" ? { mockCount: row.mockCount + 1 } : {}),
-        ...(activityType === "pyq" ? { pyqCount: row.pyqCount + 1 } : {}),
-        updatedAt: new Date(),
-      })
-      .where(eq(userStreaksTable.userId, safeUserId))
-      .returning();
-
-    return {
-      currentStreak: updated.currentStreak,
-      longestStreak: updated.longestStreak,
-      totalPoints: activityType === "login" ? row.totalPoints : updated.totalPoints,
-      pointsEarned,
-      streakIncremented,
-    };
-  }
 }
 
 // GET /leaderboard — public
 export async function getLeaderboard(req: Request, res: Response, next: NextFunction) {
-  const limit = Math.min(Number(req.query.limit ?? 20), 50);
-  const period = req.query.period as string | undefined;
+  const limit = sanitizeLimit(req.query.limit);
+  const period = req.query.period;
+
+  let periodFilter: "weekly" | "monthly" | null = null;
+  if (period === "weekly") periodFilter = "weekly";
+  else if (period === "monthly") periodFilter = "monthly";
+  else if (period !== undefined && period !== "" && period !== "allTime") {
+    return next(new AppError(400, "period must be allTime | weekly | monthly"));
+  }
 
   try {
-    const conditions = [];
-    if (period === "monthly") {
-      const firstOfMonth = new Date();
-      firstOfMonth.setDate(1);
-      conditions.push(gte(userStreaksTable.lastActivityDate, firstOfMonth.toISOString().split("T")[0]));
-    } else if (period === "weekly") {
-      const now = new Date();
-      const day = now.getDay();
-      const diff = now.getDate() - day + (day === 0 ? -6 : 1);
-      const monday = new Date(now.getFullYear(), now.getMonth(), diff);
-      conditions.push(gte(userStreaksTable.lastActivityDate, monday.toISOString().split("T")[0]));
-    }
+    if (periodFilter) {
+      const startDate =
+        periodFilter === "weekly" ? weekStartUtcStr() : monthStartUtcStr();
+      const startTs = new Date(`${startDate}T00:00:00.000Z`);
 
-    const where = conditions.length ? and(...conditions) : undefined;
+      // Period boards rank by points actually earned in the period, computed
+      // from verified attempts (legacy rows classified by their id columns).
+      const periodExpr = attemptPointsSql();
+      const rows = await db
+        .select({
+          userId: studentAttemptsTable.userId,
+          periodPoints: periodExpr,
+          displayName: sql<string>`coalesce(max(${userStreaksTable.displayName}), 'Learner')`,
+          currentStreak: sql<number>`coalesce(max(${userStreaksTable.currentStreak}), 0)`,
+          lastActivityDate: sql<string | null>`max(${userStreaksTable.lastActivityDate})`,
+          longestStreak: sql<number>`coalesce(max(${userStreaksTable.longestStreak}), 0)`,
+          quizCount: sql<number>`coalesce(max(${userStreaksTable.quizCount}), 0)`,
+          mockCount: sql<number>`coalesce(max(${userStreaksTable.mockCount}), 0)`,
+          pyqCount: sql<number>`coalesce(max(${userStreaksTable.pyqCount}), 0)`,
+        })
+        .from(studentAttemptsTable)
+        .leftJoin(
+          userStreaksTable,
+          eq(userStreaksTable.userId, studentAttemptsTable.userId),
+        )
+        .where(gte(studentAttemptsTable.attemptedAt, startTs))
+        .groupBy(studentAttemptsTable.userId)
+        .orderBy(
+          desc(periodExpr),
+          desc(sql`coalesce(max(${userStreaksTable.currentStreak}), 0)`),
+          desc(sql`coalesce(max(${userStreaksTable.longestStreak}), 0)`),
+          asc(sql`coalesce(max(${userStreaksTable.createdAt}), min(${studentAttemptsTable.attemptedAt}))`),
+        )
+        .limit(limit);
+
+      const today = todayStr();
+      const yesterday = yesterdayStr();
+
+      const entries = rows.map((row, idx) => ({
+        rank: idx + 1,
+        displayName: row.displayName,
+        totalPoints: Number(row.periodPoints),
+        periodPoints: Number(row.periodPoints),
+        currentStreak: effectiveCurrentStreak(
+          Number(row.currentStreak),
+          row.lastActivityDate ?? null,
+          today,
+          yesterday,
+        ),
+        longestStreak: Number(row.longestStreak),
+        quizCount: Number(row.quizCount),
+        mockCount: Number(row.mockCount),
+        pyqCount: Number(row.pyqCount),
+      }));
+
+      return res.json(entries);
+    }
 
     const rows = await db
       .select()
       .from(userStreaksTable)
-      .where(where)
-      .orderBy(desc(userStreaksTable.totalPoints))
+      .orderBy(
+        desc(userStreaksTable.totalPoints),
+        desc(userStreaksTable.currentStreak),
+        desc(userStreaksTable.longestStreak),
+        asc(userStreaksTable.createdAt),
+      )
       .limit(limit);
+
+    const today = todayStr();
+    const yesterday = yesterdayStr();
 
     const entries = rows.map((row, idx) => ({
       rank: idx + 1,
       displayName: row.displayName,
       totalPoints: row.totalPoints,
-      currentStreak: row.currentStreak,
+      currentStreak: effectiveCurrentStreak(
+        row.currentStreak,
+        row.lastActivityDate,
+        today,
+        yesterday,
+      ),
       longestStreak: row.longestStreak,
       quizCount: row.quizCount,
       mockCount: row.mockCount,

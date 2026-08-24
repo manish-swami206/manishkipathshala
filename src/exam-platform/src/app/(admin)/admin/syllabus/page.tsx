@@ -46,7 +46,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
-import { useAuth } from "@clerk/nextjs";
 import { useToast } from "@/hooks/use-toast";
 import { useAdminFetch } from "@/hooks/useAdminFetch";
 import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
@@ -103,7 +102,6 @@ export default function SyllabusAdminPage() {
   const { toast } = useToast();
   const qc = useQueryClient();
   const adminFetch = useAdminFetch();
-  const { getToken } = useAuth();
   const [page, setPage] = useState(1);
 
   // Detail Dialog
@@ -164,18 +162,12 @@ export default function SyllabusAdminPage() {
 
   const createMutation = useMutation({
     mutationFn: async (data: FormData | Record<string, unknown>) => {
-      const token = await getToken();
+      // Direct API call for FormData (bypasses Next.js rewrite — proxy caps request bodies ~4.5MB)
       if (data instanceof FormData) {
-        const res = await fetch("/api/admin/syllabus", {
+        return adminFetch<SyllabusItem>("/api/admin/syllabus", {
           method: "POST",
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
           body: data,
         });
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err.error || "Failed to create syllabus");
-        }
-        return res.json();
       }
       return adminFetch<SyllabusItem>("/api/admin/syllabus", {
         method: "POST",
@@ -196,18 +188,12 @@ export default function SyllabusAdminPage() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: FormData | Record<string, unknown> }) => {
-      const token = await getToken();
+      // Direct API call for FormData (bypasses Next.js rewrite — proxy caps request bodies ~4.5MB)
       if (data instanceof FormData) {
-        const res = await fetch(`/api/admin/syllabus/${id}`, {
+        return adminFetch<SyllabusItem>(`/api/admin/syllabus/${id}`, {
           method: "PATCH",
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
           body: data,
         });
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err.error || "Failed to update syllabus");
-        }
-        return res.json();
       }
       return adminFetch<SyllabusItem>(`/api/admin/syllabus/${id}`, {
         method: "PATCH",
@@ -612,7 +598,7 @@ export default function SyllabusAdminPage() {
                     <label htmlFor="syllabus-file-input" className="cursor-pointer block">
                       <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                       <p className="text-sm font-semibold text-gray-700">{fileName || "Select PDF document"}</p>
-                      <p className="text-xs text-gray-400 mt-1">PDF max 50MB</p>
+                      <p className="text-xs text-gray-400 mt-1">PDF max 10MB</p>
                     </label>
                   </div>
                 ) : (

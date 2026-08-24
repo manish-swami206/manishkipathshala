@@ -100,6 +100,7 @@ export default function QuizPlayer() {
       saveAttempt={async (payload) => {
         return saveAttempt.mutateAsync({
           quizId: id,
+          activityType: "quiz",
           ...payload,
         });
       }}

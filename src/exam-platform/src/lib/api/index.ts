@@ -1,5 +1,5 @@
 import { useAuth } from "@clerk/nextjs";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { UseQueryOptions, UseMutationOptions } from "@tanstack/react-query";
 import type {
   Announcement,
@@ -16,6 +16,7 @@ import type {
 import { apiFetch, ApiError } from "./client";
 import { adminApi, currentAffairsApi, quizzesApi } from "./endpoints";
 import { queryKeys } from "./query-keys";
+import { toast } from "@/hooks/use-toast";
 
 import type {
   PyqSubject,
@@ -95,7 +96,12 @@ type QueryHookOptions = {
   query?: Record<string, unknown>;
 };
 
-type MutationHookOptions = Record<string, unknown>;
+interface MutationHookOptions<TData = unknown, TVariables = unknown> {
+  query?: Record<string, unknown>;
+  onSuccess?: (data: TData, variables: TVariables) => unknown;
+  onError?: (error: Error, variables: TVariables) => unknown;
+  [key: string]: unknown;
+}
 
 function useTokenizedQuery<TData>(
   queryKey: readonly unknown[],
@@ -118,13 +124,17 @@ function useTokenizedQuery<TData>(
 
 function useTokenizedMutation<TVariables, TData>(
   mutationFn: (variables: TVariables, token?: string) => Promise<TData>,
-  _options?: MutationHookOptions,
+  options?: MutationHookOptions<TData, TVariables>,
 ) {
   const { getToken } = useAuth();
+  const onSuccess = options?.onSuccess;
+  const onError = options?.onError;
 
   return useMutation({
     mutationFn: async (variables: TVariables) =>
       mutationFn(variables, (await getToken()) ?? undefined),
+    ...(onSuccess ? { onSuccess } : {}),
+    ...(onError ? { onError } : {}),
   } as UseMutationOptions<TData, Error, TVariables>);
 }
 
@@ -521,11 +531,17 @@ export function useRecordActivity(options?: MutationHookOptions) {
 
 // ── Attempts History ────────────────────────────────────────────────────
 
-export function useSaveAttempt(options?: MutationHookOptions) {
+const POINTS_PER_MOCK = 50;
+
+export function useSaveAttempt(options?: MutationHookOptions<StudentAttempt>) {
+  const queryClient = useQueryClient();
+  const userOnSuccess = options?.onSuccess;
+
   return useTokenizedMutation<
     {
       examId?: string;
       quizId?: string;
+      activityType?: "quiz" | "mock" | "pyq";
       score: number;
       totalMarks: number;
       correctCount: number;
@@ -542,7 +558,28 @@ export function useSaveAttempt(options?: MutationHookOptions) {
         body: JSON.stringify(body),
         token,
       }),
-    options,
+    {
+      ...options,
+      // Attempt saves change streak points/counters server-side — refresh
+      // profile + history caches so the UI reflects rewards immediately.
+      onSuccess: (data, variables) => {
+        void queryClient.invalidateQueries({ queryKey: ["streaks", "current"] });
+        void queryClient.invalidateQueries({ queryKey: ["attempts", "mine"] });
+        void queryClient.invalidateQueries({
+          queryKey: ["stats", "leaderboard"],
+        });
+        if ((data.pointsEarned ?? 0) > 0) {
+          toast({
+            title: `+${data.pointsEarned} points earned!`,
+            description:
+              data.pointsEarned === POINTS_PER_MOCK
+                ? "Mock test completed — big reward!"
+                : "Keep the streak going!",
+          });
+        }
+        userOnSuccess?.(data, variables);
+      },
+    },
   );
 }
 

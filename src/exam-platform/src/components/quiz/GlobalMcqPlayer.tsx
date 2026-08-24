@@ -291,9 +291,10 @@ export default function GlobalMcqPlayer({
       // Show the full-screen loading overlay IMMEDIATELY — blocks all clicks
       setIsNavigatingToResult(true);
 
-      // Only save attempt history for mock tests and daily quizzes
-      // NCERT and PYQ are practice modes — no need to track scores
-      const shouldSave = mode === "mock" || mode === "daily";
+      // Save attempt history for mock tests, daily quizzes and PYQ practice
+      // (PYQ completions earn streak/point rewards server-side).
+      // NCERT remains practice-only — no attempt tracking.
+      const shouldSave = mode === "mock" || mode === "daily" || mode === "pyq";
       const savePromise = shouldSave
         ? saveAttempt({
             score,

@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
-import { eq, inArray, and, sql } from "drizzle-orm";
+import { eq, inArray, and, sql, desc } from "drizzle-orm";
 import { db } from "../../db";
 import { subjects, questionsTable, examSetsTable } from "@workspace/db";
 
@@ -80,7 +80,7 @@ export async function getPyqSets(req: Request, res: Response, next: NextFunction
       .select()
       .from(examSetsTable)
       .where(and(...conditions))
-      .orderBy(examSetsTable.createdAt);
+      .orderBy(desc(examSetsTable.createdAt));
 
     return res.json(sets.map((s) => ({
       ...s,
@@ -180,7 +180,7 @@ export async function getPyqQuestions(req: Request, res: Response, next: NextFun
         .select()
         .from(questionsTable)
         .where(and(inArray(questionsTable.id, uniqueIds), eq(questionsTable.isActive, true)))
-        .orderBy(questionsTable.id)
+        .orderBy(desc(questionsTable.createdAt))
         .limit(limit)
         .offset(offset),
     ]);

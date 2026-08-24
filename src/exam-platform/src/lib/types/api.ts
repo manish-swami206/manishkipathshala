@@ -352,6 +352,7 @@ export interface ListNcertBooksParams {
 export interface QuizListItem {
   id: string;
   title: string;
+  description?: string | null;
   subject: string;
   durationMins: number;
   questionCount: number;

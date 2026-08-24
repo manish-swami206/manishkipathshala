@@ -35,6 +35,7 @@ function RulesBox({
   durationMins: number;
 }) {
   const rules = [
+    ...(instructions ? [instructions] : []),
     `Ensure you have ${durationMins} minutes of uninterrupted time.`,
     "Do not refresh the page during the quiz.",
     "Quiz will auto-submit when the timer hits zero.",

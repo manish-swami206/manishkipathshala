@@ -124,6 +124,11 @@ function QuizCard({
             <h3 className="font-bold text-foreground line-clamp-2 leading-tight">
               {quiz.title}
             </h3>
+            {quiz.description && (
+              <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
+                {quiz.description}
+              </p>
+            )}
           </div>
           {type === "history" && (
             <div className="shrink-0 p-1.5 bg-emerald-500/10 rounded-full text-emerald-600">

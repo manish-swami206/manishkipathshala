@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { db } from "../../db";
 import { questionsTable, examSetsTable, mockTestsTable, dailyQuizzes } from "@workspace/db";
-import { eq, ilike, and, sql, desc, inArray } from "drizzle-orm";
+import { eq, ilike, and, or, sql, desc, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { invalidateEntity } from "../../services/cacheInvalidation";
 import { routeParam } from "../../lib/routeParams";
@@ -38,7 +38,18 @@ export async function listAllQuestions(req: Request, res: Response, next: NextFu
 
     const conditions = [];
     if (search) {
-      conditions.push(ilike(questionsTable.text, `%${search}%`));
+      const pattern = `%${search}%`;
+      conditions.push(
+        or(
+          ilike(questionsTable.text, pattern),
+          ilike(questionsTable.optionA, pattern),
+          ilike(questionsTable.optionB, pattern),
+          ilike(questionsTable.optionC, pattern),
+          ilike(questionsTable.optionD, pattern),
+          ilike(questionsTable.subject, pattern),
+          ilike(questionsTable.explanation, pattern),
+        )
+      );
     }
     if (subject) conditions.push(eq(questionsTable.subject, subject));
     if (difficulty) conditions.push(eq(questionsTable.difficulty, difficulty));
@@ -112,10 +123,16 @@ export async function bulkUploadQuestions(req: Request, res: Response, next: Nex
     }
 
     const parsedList = [];
-    for (const q of questions) {
-      const parsed = questionBodySchema.safeParse(q);
+    const failed: { index: number; errors: string[] }[] = [];
+    for (let i = 0; i < questions.length; i++) {
+      const parsed = questionBodySchema.safeParse(questions[i]);
       if (parsed.success) {
         parsedList.push(parsed.data);
+      } else {
+        failed.push({
+          index: i + 1,
+          errors: parsed.error.issues.map((issue) => `${issue.path.join(".")}: ${issue.message}`),
+        });
       }
     }
 
@@ -125,7 +142,11 @@ export async function bulkUploadQuestions(req: Request, res: Response, next: Nex
 
     const inserted = await db.insert(questionsTable).values(parsedList).returning();
     invalidateEntity("questions");
-    return res.status(201).json({ success: true, count: inserted.length });
+    return res.status(201).json({
+      success: true,
+      count: inserted.length,
+      failed: failed.length > 0 ? failed : undefined,
+    });
   } catch (err) {
     return next(err);
   }

@@ -128,14 +128,22 @@ type UploadQuestion = Omit<ParsedQuestion, "rowIndex">;
   // ── Upload mutation ────────────────────────────────────────────────────
   const bulkUploadMutation = useMutation({
     mutationFn: async (questions: UploadQuestion[]) =>
-      adminFetch<{ success: boolean; count: number }>("/api/admin/questions/bulk-upload", {
+      adminFetch<{ success: boolean; count: number; failed?: { index: number; errors: string[] }[] }>("/api/admin/questions/bulk-upload", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ questions }),
       }),
     onSuccess: (res) => {
       setImporting(false);
-      toast({ title: "Imported!", description: `Successfully uploaded ${res.count} questions.` });
+      if (res.failed && res.failed.length > 0) {
+        toast({
+          title: `Imported ${res.count} questions (${res.failed.length} failed)`,
+          description: res.failed.slice(0, 5).map((f) => `Row ${f.index}: ${f.errors.join("; ")}`).join("\n") + (res.failed.length > 5 ? `\n...and ${res.failed.length - 5} more` : ""),
+          variant: "default",
+        });
+      } else {
+        toast({ title: "Imported!", description: `Successfully uploaded ${res.count} questions.` });
+      }
       if (invalidateKeys) {
         invalidateKeys.forEach((key) => qc.invalidateQueries({ queryKey: key }));
       }

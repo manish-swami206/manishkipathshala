@@ -6,14 +6,12 @@ import { Search, ChevronLeft, ChevronRight, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { useAdminFetch } from "@/hooks/useAdminFetch";
 import { useListSubjects } from "@/lib/api";
 
 interface Question {
   id: string;
   text: string;
-  type: string;
   subject: string | null;
   difficulty?: string;
   optionA?: string;
@@ -61,7 +59,7 @@ export function QuestionSelector({ selectedIds, onChange }: QuestionSelectorProp
     queryFn: async () => {
       const sp = new URLSearchParams({
         page: String(page),
-        limit: "10",
+        limit: "50",
       });
       if (debouncedSearch.trim()) sp.set("search", debouncedSearch.trim());
       if (subject !== "All") sp.set("subject", subject);
@@ -98,7 +96,7 @@ export function QuestionSelector({ selectedIds, onChange }: QuestionSelectorProp
           <Input
             value={search}
             onChange={(e) => handleSearch(e.target.value)}
-            placeholder="Search questions..."
+            placeholder="Search questions, options, or subjects..."
             className="pl-9 h-10 rounded-xl"
           />
         </div>
@@ -118,6 +116,19 @@ export function QuestionSelector({ selectedIds, onChange }: QuestionSelectorProp
           ))}
         </select>
       </div>
+
+      {selectedIds.length > 0 && (
+        <div className="flex items-center gap-2 px-3 py-2 bg-violet-50 rounded-xl border border-violet-200 text-xs text-violet-700 font-medium">
+          <Check className="h-3.5 w-3.5" />
+          {selectedIds.length} question{selectedIds.length !== 1 ? "s" : ""} selected
+          <button
+            onClick={() => onChange([])}
+            className="ml-auto text-violet-500 hover:text-violet-700 underline"
+          >
+            Clear all
+          </button>
+        </div>
+      )}
 
       <div className="space-y-2 max-h-[360px] overflow-y-auto pr-1">
         {isLoading ? (
@@ -145,9 +156,6 @@ export function QuestionSelector({ selectedIds, onChange }: QuestionSelectorProp
                       {q.text}
                     </p>
                     <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                      <Badge variant="outline" className="text-[10px] uppercase font-bold">
-                        {q.type}
-                      </Badge>
                       {q.subject && (
                         <span className="text-[11px] font-semibold text-gray-400">
                           {q.subject}

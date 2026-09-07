@@ -501,6 +501,69 @@ export default function PypAdminPage() {
           </SheetHeader>
 
           <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Upload mode toggle */}
+            <div className="grid grid-cols-2 gap-2 bg-gray-50 p-1 rounded-xl">
+              <button type="button" onClick={() => setUploadMode("url")}
+                className={`py-1.5 text-xs font-bold rounded-lg transition-all ${uploadMode === "url" ? "bg-white text-amber-700 shadow-sm" : "text-gray-500"}`}
+              >
+                URL Link
+              </button>
+              <button type="button" onClick={() => setUploadMode("file")}
+                className={`py-1.5 text-xs font-bold rounded-lg transition-all ${uploadMode === "file" ? "bg-white text-amber-700 shadow-sm" : "text-gray-500"}`}
+              >
+                Upload PDF
+              </button>
+            </div>
+
+            {uploadMode === "file" ? (
+              <div className="space-y-4">
+                <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center cursor-pointer hover:border-amber-500 transition-all hover:bg-amber-50/20">
+                  <input type="file" accept=".pdf" onChange={handlePaperFileChange} className="hidden" id="pyp-file-input" />
+                  <label htmlFor="pyp-file-input" className="cursor-pointer block">
+                    <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                    <p className="text-sm font-semibold text-gray-700">{paperFileName || "Select Question Paper PDF"}</p>
+                    <p className="text-xs text-gray-400 mt-1">PDF max 10MB</p>
+                  </label>
+                </div>
+                <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center cursor-pointer hover:border-emerald-500 transition-all hover:bg-emerald-50/20">
+                  <input type="file" accept=".pdf" onChange={handleAnswerKeyFileChange} className="hidden" id="pyp-answerkey-input" />
+                  <label htmlFor="pyp-answerkey-input" className="cursor-pointer block">
+                    <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                    <p className="text-sm font-semibold text-gray-700">{answerKeyFileName || "Select Answer Key PDF (optional)"}</p>
+                    <p className="text-xs text-gray-400 mt-1">Optional — upload answer key separately</p>
+                  </label>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                    Question Paper URL
+                  </Label>
+                  <Input
+                    value={questionPaperUrl}
+                    onChange={(e) => setQuestionPaperUrl(e.target.value)}
+                    placeholder="https://..."
+                    className="rounded-xl h-10"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                    Answer Key URL
+                  </Label>
+                  <Input
+                    value={answerKeyUrl}
+                    onChange={(e) => setAnswerKeyUrl(e.target.value)}
+                    placeholder="https://..."
+                    className="rounded-xl h-10"
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Link to answer key PDF or external answer key page
+                  </p>
+                </div>
+              </div>
+            )}
+
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
                 Exam Name *
@@ -563,69 +626,6 @@ export default function PypAdminPage() {
                 </SelectContent>
               </Select>
             </div>
-
-            {/* Upload mode toggle */}
-            <div className="grid grid-cols-2 gap-2 bg-gray-50 p-1 rounded-xl">
-              <button type="button" onClick={() => setUploadMode("url")}
-                className={`py-1.5 text-xs font-bold rounded-lg transition-all ${uploadMode === "url" ? "bg-white text-amber-700 shadow-sm" : "text-gray-500"}`}
-              >
-                URL Link
-              </button>
-              <button type="button" onClick={() => setUploadMode("file")}
-                className={`py-1.5 text-xs font-bold rounded-lg transition-all ${uploadMode === "file" ? "bg-white text-amber-700 shadow-sm" : "text-gray-500"}`}
-              >
-                Upload PDF
-              </button>
-            </div>
-
-            {uploadMode === "file" ? (
-              <div className="space-y-4">
-                <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center cursor-pointer hover:border-amber-500 transition-all hover:bg-amber-50/20">
-                  <input type="file" accept=".pdf" onChange={handlePaperFileChange} className="hidden" id="pyp-file-input" />
-                  <label htmlFor="pyp-file-input" className="cursor-pointer block">
-                    <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                    <p className="text-sm font-semibold text-gray-700">{paperFileName || "Select Question Paper PDF"}</p>
-                    <p className="text-xs text-gray-400 mt-1">PDF max 10MB</p>
-                  </label>
-                </div>
-                <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center cursor-pointer hover:border-emerald-500 transition-all hover:bg-emerald-50/20">
-                  <input type="file" accept=".pdf" onChange={handleAnswerKeyFileChange} className="hidden" id="pyp-answerkey-input" />
-                  <label htmlFor="pyp-answerkey-input" className="cursor-pointer block">
-                    <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                    <p className="text-sm font-semibold text-gray-700">{answerKeyFileName || "Select Answer Key PDF (optional)"}</p>
-                    <p className="text-xs text-gray-400 mt-1">Optional — upload answer key separately</p>
-                  </label>
-                </div>
-              </div>
-            ) : (
-              <div className="border-t pt-4 space-y-4">
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                    Question Paper URL
-                  </Label>
-                  <Input
-                    value={questionPaperUrl}
-                    onChange={(e) => setQuestionPaperUrl(e.target.value)}
-                    placeholder="https://..."
-                    className="rounded-xl h-10"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                    Answer Key URL
-                  </Label>
-                  <Input
-                    value={answerKeyUrl}
-                    onChange={(e) => setAnswerKeyUrl(e.target.value)}
-                    placeholder="https://..."
-                    className="rounded-xl h-10"
-                  />
-                  <p className="text-[11px] text-muted-foreground">
-                    Link to answer key PDF or external answer key page
-                  </p>
-                </div>
-              </div>
-            )}
 
             <Button
               type="submit"

@@ -567,18 +567,8 @@ export default function SyllabusAdminPage() {
                 <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs font-semibold text-red-700">{formError}</div>
               )}
 
-              <motion.div custom={0} variants={fieldVariants} initial="hidden" animate="visible" className="space-y-1.5">
-                <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Title *</Label>
-                <Input value={formTitle} onChange={(e) => setFormTitle(e.target.value)} placeholder="e.g. UPSC CSE Syllabus" required className="rounded-xl h-10" />
-              </motion.div>
-
-              <motion.div custom={1} variants={fieldVariants} initial="hidden" animate="visible" className="space-y-1.5">
-                <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Exam Category</Label>
-                <Input value={formExamCategory} onChange={(e) => setFormExamCategory(e.target.value)} placeholder="e.g. UPSC CSE" className="rounded-xl h-10" />
-              </motion.div>
-
-                    {/* Upload Mode Toggle */}
-                    <motion.div custom={2} variants={fieldVariants} initial="hidden" animate="visible" className="space-y-3">
+              {/* Upload Mode Toggle */}
+              <motion.div custom={0} variants={fieldVariants} initial="hidden" animate="visible" className="space-y-3">
                 <div className="grid grid-cols-2 gap-2 bg-gray-50 p-1 rounded-xl">
                   <button type="button" onClick={() => setUploadMode("file")}
                     className={`py-1.5 text-xs font-bold rounded-lg transition-all ${uploadMode === "file" ? "bg-white text-indigo-700 shadow-sm" : "text-gray-500"}`}
@@ -607,6 +597,16 @@ export default function SyllabusAdminPage() {
                     <Input value={formUrl} onChange={(e) => setFormUrl(e.target.value)} placeholder="https://..." className="rounded-xl h-10" />
                   </div>
                 )}
+              </motion.div>
+
+              <motion.div custom={1} variants={fieldVariants} initial="hidden" animate="visible" className="space-y-1.5">
+                <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Title *</Label>
+                <Input value={formTitle} onChange={(e) => setFormTitle(e.target.value)} placeholder="e.g. UPSC CSE Syllabus" required className="rounded-xl h-10" />
+              </motion.div>
+
+              <motion.div custom={2} variants={fieldVariants} initial="hidden" animate="visible" className="space-y-1.5">
+                <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Exam Category</Label>
+                <Input value={formExamCategory} onChange={(e) => setFormExamCategory(e.target.value)} placeholder="e.g. UPSC CSE" className="rounded-xl h-10" />
               </motion.div>
             </form>
 

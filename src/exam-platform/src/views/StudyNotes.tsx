@@ -18,7 +18,7 @@ import {
 import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
 import {
   Search,
-  Download,
+  Share2,
   FileText,
   ChevronLeft,
   ChevronRight,
@@ -147,17 +147,19 @@ export default function StudyNotes() {
                     page="study-notes"
                     action="read"
                   />
-                  <DocumentActionButton
-                    url={note.url || ""}
-                    page="study-notes"
-                    action="download"
-                    icon={
-                      <Download className="w-4 h-4 text-muted-foreground" />
-                    }
+                  <Button
                     variant="outline"
-                    label=""
+                    size="sm"
                     className="shrink-0 rounded-xl"
-                  />
+                    onClick={() => {
+                      navigator.share?.({
+                        title: note.title,
+                        url: note.url || window.location.href,
+                      }).catch(() => {});
+                    }}
+                  >
+                    <Share2 className="w-4 h-4" />
+                  </Button>
                 </div>
               </CardContent>
             </Card>

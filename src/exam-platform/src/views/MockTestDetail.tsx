@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRequireAuth } from "@/components/shared/RequireAuthModal";
-import { ArrowLeft, Clock, FileText, Award, AlertCircle, Play } from "lucide-react";
+import { ArrowLeft, Clock, FileText, Award, AlertCircle, Play, Share2 } from "lucide-react";
 
 export default function MockTestDetail() {
   const params = useParams<{ id: string }>();
@@ -54,17 +54,32 @@ export default function MockTestDetail() {
                 <p className="text-xs text-muted-foreground">{label}</p>
               </div>
             ))}                  </div>
-                  <Button
-                    size="lg"
-                    className="w-full rounded-xl bg-primary text-primary-foreground h-14 text-lg gap-2"
-                    onClick={async () => {
-                      await requireAuth(() => {
-                        router.push(`/mock-tests/${test.id}/play`);
-                      });
-                    }}
-                  >
-                    <Play className="w-5 h-5" /> Start Mock Test
-                  </Button>
+                  <div className="flex gap-3">
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      className="rounded-xl h-14 gap-2"
+                      onClick={() => {
+                        navigator.share?.({
+                          title: test.title,
+                          url: window.location.href,
+                        }).catch(() => {});
+                      }}
+                    >
+                      <Share2 className="w-5 h-5" /> Share
+                    </Button>
+                    <Button
+                      size="lg"
+                      className="flex-1 rounded-xl bg-primary text-primary-foreground h-14 text-lg gap-2"
+                      onClick={async () => {
+                        await requireAuth(() => {
+                          router.push(`/mock-tests/${test.id}/play`);
+                        });
+                      }}
+                    >
+                      <Play className="w-5 h-5" /> Start Mock Test
+                    </Button>
+                  </div>
         </CardContent>
       </Card>
     </PageTransition>

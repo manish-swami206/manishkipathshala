@@ -50,6 +50,13 @@
       "when": 1787556602337,
       "tag": "0006_attempts_text_quizid_and_activity_type",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1788000000000,
+      "tag": "0007_announcements_expires_at",
+      "breakpoints": true
     }
   ]
 }

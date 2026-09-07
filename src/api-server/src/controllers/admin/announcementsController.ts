@@ -14,6 +14,7 @@ const announcementSchema = z.object({
   isActive: z.boolean().optional(),
   linkText: z.string().optional().nullable(),
   linkUrl: z.string().optional().nullable(),
+  expiresAt: z.string().datetime().optional().nullable(),
 });
 
 export async function listAllAnnouncements(req: Request, res: Response, next: NextFunction) {
@@ -37,6 +38,7 @@ export async function listAllAnnouncements(req: Request, res: Response, next: Ne
       data: announcements.map((a) => ({
         ...a,
         createdAt: a.createdAt.toISOString(),
+        expiresAt: a.expiresAt?.toISOString() ?? null,
       })),
       pagination: {
         page,
@@ -63,6 +65,7 @@ export async function getAnnouncement(req: Request, res: Response, next: NextFun
     return res.json({
       ...ann,
       createdAt: ann.createdAt.toISOString(),
+      expiresAt: ann.expiresAt?.toISOString() ?? null,
     });
   } catch (err) {
     return next(err);
@@ -75,7 +78,9 @@ export async function createAnnouncement(req: Request, res: Response, next: Next
     if (!parsed.success) {
       return next(new AppError(400, `Validation failed — ${parsed.error.issues.map(i => i.message).join("; ")}`));
     }
-    const { title, body, type, isActive, linkText, linkUrl } = parsed.data;
+    const { title, body, type, isActive, linkText, linkUrl, expiresAt } = parsed.data;
+
+    const expiryDate = expiresAt ? new Date(expiresAt) : new Date(Date.now() + 24 * 60 * 60 * 1000);
 
     const [ann] = await db
       .insert(announcementsTable)
@@ -86,6 +91,7 @@ export async function createAnnouncement(req: Request, res: Response, next: Next
         isActive: isActive !== undefined ? isActive : true,
         linkText,
         linkUrl,
+        expiresAt: expiryDate,
       })
       .returning();
 
@@ -93,6 +99,7 @@ export async function createAnnouncement(req: Request, res: Response, next: Next
     return res.status(201).json({
       ...ann,
       createdAt: ann.createdAt.toISOString(),
+      expiresAt: ann.expiresAt?.toISOString() ?? null,
     });
   } catch (err) {
     return next(err);
@@ -106,9 +113,13 @@ export async function updateAnnouncement(req: Request, res: Response, next: Next
     if (!parsed.success) {
       return next(new AppError(400, `Validation failed — ${parsed.error.issues.map(i => i.message).join("; ")}`));
     }
+    const { expiresAt, ...rest } = parsed.data;
     const [updated] = await db
       .update(announcementsTable)
-      .set(parsed.data)
+      .set({
+        ...rest,
+        ...(expiresAt !== undefined && { expiresAt: expiresAt ? new Date(expiresAt) : null }),
+      })
       .where(eq(announcementsTable.id, id))
       .returning();
 
@@ -119,6 +130,7 @@ export async function updateAnnouncement(req: Request, res: Response, next: Next
     return res.json({
       ...updated,
       createdAt: updated.createdAt.toISOString(),
+      expiresAt: updated.expiresAt?.toISOString() ?? null,
     });
   } catch (err) {
     return next(err);

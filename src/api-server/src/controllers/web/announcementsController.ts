@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { db } from "../../db";
 import { announcementsTable } from "@workspace/db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, or, isNull, gt } from "drizzle-orm";
 import { cacheGet, cacheSet, cacheDel, CacheTTL } from "../../lib/cache";
 
 export async function listAnnouncements(_req: Request, res: Response, next: NextFunction) {
@@ -13,15 +13,23 @@ export async function listAnnouncements(_req: Request, res: Response, next: Next
       return;
     }
 
+    const now = new Date();
     const announcements = await db
       .select()
       .from(announcementsTable)
-      .where(eq(announcementsTable.isActive, true))
+      .where(
+        eq(announcementsTable.isActive, true) &&
+          or(
+            isNull(announcementsTable.expiresAt),
+            gt(announcementsTable.expiresAt, now)
+          )
+      )
       .orderBy(desc(announcementsTable.createdAt));
 
     const serialized = announcements.map((a) => ({
       ...a,
       createdAt: a.createdAt.toISOString(),
+      expiresAt: a.expiresAt?.toISOString() ?? null,
     }));
 
     await cacheSet(cacheKey, serialized, CacheTTL.SHORT);

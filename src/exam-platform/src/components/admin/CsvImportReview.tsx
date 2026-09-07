@@ -82,6 +82,16 @@ function detectField(row: Record<string, string>, field: string): string {
   return "";
 }
 
+function parseCorrectIndex(raw: string): number {
+  if (!raw) return 0;
+  const trimmed = raw.trim();
+  const letterMap: Record<string, number> = { a: 0, b: 1, c: 2, d: 3 };
+  const lower = trimmed.toLowerCase();
+  if (lower in letterMap) return letterMap[lower];
+  const num = parseInt(trimmed, 10);
+  return Number.isFinite(num) && num >= 0 && num <= 3 ? num : 0;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Component
 // ─────────────────────────────────────────────────────────────────────────────
@@ -179,7 +189,7 @@ type UploadQuestion = Omit<ParsedQuestion, "rowIndex">;
               optionB: detectField(row, "optionB") || "",
               optionC: detectField(row, "optionC") || "",
               optionD: detectField(row, "optionD") || "",
-              correctIndex: parseInt(detectField(row, "correctIndex") || "0", 10) || 0,
+              correctIndex: parseCorrectIndex(detectField(row, "correctIndex")),
               explanation: detectField(row, "explanation") || "",
               subject: detectField(row, "subject") || "",
               difficulty: detectField(row, "difficulty") || "medium",

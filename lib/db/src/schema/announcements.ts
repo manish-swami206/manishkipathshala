@@ -9,6 +9,7 @@ export const announcementsTable = pgTable("announcements", {
   isActive: boolean("is_active").notNull().default(true),
   linkText: text("link_text"),
   linkUrl: text("link_url"),
+  expiresAt: timestamp("expires_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

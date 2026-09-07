@@ -64,6 +64,7 @@ interface Announcement {
   linkText: string | null;
   linkUrl: string | null;
   createdAt: string;
+  expiresAt: string | null;
 }
 
 const TYPES = ["info", "success", "warning", "urgent"] as const;
@@ -350,6 +351,9 @@ export default function AnnouncementsAdminPage() {
                     <TableHead className="font-bold text-xs uppercase tracking-wider text-gray-500">
                       Status
                     </TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider text-gray-500">
+                      Expires
+                    </TableHead>
                     <TableHead className="text-right font-bold text-xs uppercase tracking-wider text-gray-500 pr-5">
                       Actions
                     </TableHead>
@@ -447,6 +451,25 @@ export default function AnnouncementsAdminPage() {
                                 Click to {ann.isActive ? "pause" : "activate"}
                               </TooltipContent>
                             </Tooltip>
+                          </TableCell>
+
+                          {/* Expires */}
+                          <TableCell>
+                            {ann.expiresAt ? (
+                              (() => {
+                                const expDate = new Date(ann.expiresAt);
+                                const now = new Date();
+                                const isExpired = expDate <= now;
+                                const hoursLeft = Math.max(0, Math.round((expDate.getTime() - now.getTime()) / (1000 * 60 * 60)));
+                                return (
+                                  <span className={`text-xs font-medium ${isExpired ? "text-red-500" : hoursLeft <= 6 ? "text-amber-600" : "text-gray-500"}`}>
+                                    {isExpired ? "Expired" : hoursLeft < 24 ? `${hoursLeft}h left` : `${Math.round(hoursLeft / 24)}d left`}
+                                  </span>
+                                );
+                              })()
+                            ) : (
+                              <span className="text-xs text-gray-400">—</span>
+                            )}
                           </TableCell>
 
                           {/* Actions */}

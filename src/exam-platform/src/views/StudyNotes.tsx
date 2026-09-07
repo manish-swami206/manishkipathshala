@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import { useSearchParams } from "next/navigation";
 import { PageTransition } from "@/components/shared/PageTransition";
 import { DocumentActionButton } from "@/components/shared/DocumentActionButton";
 import { useListStudyNotes, useListSubjects } from "@/lib/api";
@@ -8,6 +9,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -26,12 +34,20 @@ import {
 import PageHeading from "@/components/shared/PageHeading";
 
 export default function StudyNotes() {
+  const searchParams = useSearchParams();
+  const noteParam = searchParams.get("note");
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [subject, setSubject] = useState<string>("all");
   const [medium, setMedium] = useState<string>("all");
   const [page, setPage] = useState(1);
+  const [dialogNote, setDialogNote] = useState<{
+    title: string;
+    subject: string;
+    medium: string;
+    url: string | null;
+  } | null>(null);
 
   // Debounce search input (400ms) to avoid firing on every keystroke
   const handleSearch = (v: string) => {
@@ -55,6 +71,24 @@ export default function StudyNotes() {
     medium: medium !== "all" ? medium : undefined,
     page,
   });
+
+  // Auto-open dialog when ?note= is in URL
+  useEffect(() => {
+    if (!noteParam || !data?.data) return;
+    const match = data.data.find(
+      (n) => n.title.toLowerCase() === decodeURIComponent(noteParam).toLowerCase()
+    );
+    if (match && match.url) {
+      setDialogNote({
+        title: match.title,
+        subject: match.subject,
+        medium: match.medium,
+        url: match.url,
+      });
+      // Clear the URL param without reload
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, [noteParam, data?.data]);
 
   const totalPages = data?.totalPages ?? 1;
 
@@ -152,9 +186,10 @@ export default function StudyNotes() {
                     size="sm"
                     className="shrink-0 rounded-xl"
                     onClick={() => {
+                      const shareUrl = `${window.location.origin}/study-notes?note=${encodeURIComponent(note.title)}`;
                       navigator.share?.({
                         title: note.title,
-                        url: note.url || window.location.href,
+                        url: shareUrl,
                       }).catch(() => {});
                     }}
                   >
@@ -202,6 +237,52 @@ export default function StudyNotes() {
           {data.data.length !== 1 ? "s" : ""}
         </div>
       )}
+
+      {/* Shared note dialog */}
+      <Dialog open={!!dialogNote} onOpenChange={(open) => !open && setDialogNote(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-gray-900 line-clamp-2">
+              {dialogNote?.title}
+            </DialogTitle>
+            <DialogDescription className="flex items-center gap-2 text-xs">
+              {dialogNote?.subject && (
+                <span className="font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-md uppercase">
+                  {dialogNote.subject}
+                </span>
+              )}
+              {dialogNote?.medium && (
+                <span className="font-semibold text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-md uppercase">
+                  {dialogNote.medium}
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-3 pt-2">
+            {dialogNote?.url && (
+              <DocumentActionButton
+                url={dialogNote.url}
+                page="study-notes"
+                action="read"
+                className="flex-1"
+              />
+            )}
+            <Button
+              variant="outline"
+              className="rounded-xl"
+              onClick={() => {
+                const shareUrl = `${window.location.origin}/study-notes?note=${encodeURIComponent(dialogNote?.title || "")}`;
+                navigator.share?.({
+                  title: dialogNote?.title,
+                  url: shareUrl,
+                }).catch(() => {});
+              }}
+            >
+              <Share2 className="w-4 h-4" />
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </PageTransition>
   );
 }

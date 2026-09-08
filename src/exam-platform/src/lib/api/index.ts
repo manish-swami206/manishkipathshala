@@ -327,10 +327,16 @@ export function useListStudyNotes(
 
 // ── Syllabus ─────────────────────────────────────────────────────────────
 
-export function useListSyllabus(options?: QueryHookOptions) {
+export function useListSyllabus(
+  params?: {
+    subject?: string;
+    examCategory?: string;
+  },
+  options?: QueryHookOptions,
+) {
   return usePublicQuery<Syllabus[]>(
-    ["syllabus", "list"] as const,
-    () => apiFetch<Syllabus[]>("/syllabus"),
+    ["syllabus", "list", params ?? {}] as const,
+    () => apiFetch<Syllabus[]>("/syllabus" + toSearchParams(params ?? {})),
     options,
   );
 }

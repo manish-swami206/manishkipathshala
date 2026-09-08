@@ -43,13 +43,15 @@ async function handleFileUploads(req: Request, data: Record<string, unknown>): P
 
 export async function listAllPyp(req: Request, res: Response, next: NextFunction) {
   try {
-    const { page = "1", limit = "20", search } = req.query as Record<string, string>;
+    const { page = "1", limit = "20", search, subject, year: yearStr } = req.query as Record<string, string>;
     const pageNum = Math.max(1, parseInt(page, 10));
     const limitNum = Math.min(100, parseInt(limit, 10));
     const offset = (pageNum - 1) * limitNum;
 
     const conditions = [];
     if (search) conditions.push(ilike(previousYearPapersTable.examName, `%${search}%`));
+    if (subject) conditions.push(ilike(previousYearPapersTable.subject, subject));
+    if (yearStr) conditions.push(eq(previousYearPapersTable.year, parseInt(yearStr, 10)));
 
     const where = conditions.length ? and(...conditions) : undefined;
 

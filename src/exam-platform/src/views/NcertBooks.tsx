@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { PageTransition } from "@/components/shared/PageTransition";
 import { DocumentActionButton } from "@/components/shared/DocumentActionButton";
 import { useQuery } from "@tanstack/react-query";
@@ -37,6 +37,10 @@ export default function NcertBooks() {
   const [page, setPage] = useState(1);
   const [selectedClass, setSelectedClass] = useState<number | null>(null);
   const [selectedSubject, setSelectedSubject] = useState("All");
+
+  useEffect(() => {
+    setPage(1);
+  }, [selectedClass, selectedSubject]);
 
   // Dynamic subjects
   const { data: pyqSubjects = [] } = useListSubjects();

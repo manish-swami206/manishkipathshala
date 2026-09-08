@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { db } from "../../lib/db";
-import { syllabusTable } from "@workspace/db";
-import { eq, and, sql, desc } from "drizzle-orm";
+import { syllabusTable, subjects } from "@workspace/db";
+import { eq, and, ilike, sql, desc } from "drizzle-orm";
 import { z } from "zod";
 import { routeParam } from "../../lib/routeParams";
 import { AppError } from "../../middleware/errorHandler";
@@ -18,23 +18,48 @@ const syllabusSchema = z.object({
 
 export async function listAllSyllabus(req: Request, res: Response, next: NextFunction) {
   try {
-    const { page = "1", limit = "20" } = req.query as Record<string, string>;
+    const { page = "1", limit = "20", search, subject } = req.query as Record<string, string>;
     const pageNum = Math.max(1, parseInt(page, 10));
     const limitNum = Math.min(100, parseInt(limit, 10));
     const offset = (pageNum - 1) * limitNum;
 
-    const [countRow] = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(syllabusTable)
-      .where(eq(syllabusTable.isActive, true));
+    const conditions = [eq(syllabusTable.isActive, true)];
+    if (search) conditions.push(ilike(syllabusTable.title, `%${search}%`));
 
-    const data = await db
-      .select()
-      .from(syllabusTable)
-      .where(eq(syllabusTable.isActive, true))
-      .orderBy(desc(syllabusTable.createdAt))
-      .limit(limitNum)
-      .offset(offset);
+    const where = and(...conditions);
+
+    let countRow, data;
+    if (subject) {
+      // Filter by subject name via subjects table join
+      [countRow] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(syllabusTable)
+        .innerJoin(subjects, eq(syllabusTable.subjectId, subjects.id))
+        .where(and(...conditions, ilike(subjects.name, subject)));
+
+      data = await db
+        .select({ syllabus: syllabusTable })
+        .from(syllabusTable)
+        .innerJoin(subjects, eq(syllabusTable.subjectId, subjects.id))
+        .where(and(...conditions, ilike(subjects.name, subject)))
+        .orderBy(desc(syllabusTable.createdAt))
+        .limit(limitNum)
+        .offset(offset)
+        .then(rows => rows.map(r => r.syllabus));
+    } else {
+      [countRow] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(syllabusTable)
+        .where(where);
+
+      data = await db
+        .select()
+        .from(syllabusTable)
+        .where(where)
+        .orderBy(desc(syllabusTable.createdAt))
+        .limit(limitNum)
+        .offset(offset);
+    }
 
     res.json({
       data,

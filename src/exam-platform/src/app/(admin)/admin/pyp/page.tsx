@@ -115,15 +115,19 @@ export default function PypAdminPage() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [selectedSubject, setSelectedSubject] = useState<string>("all");
+  const [selectedYear, setSelectedYear] = useState<string>("all");
 
   // Dynamic Subjects
   const { data: subjects = [] } = useListSubjects();
 
   const { data: pypResponse, isLoading } = useQuery({
-    queryKey: ["admin", "pyp", page, debouncedSearch],
+    queryKey: ["admin", "pyp", page, debouncedSearch, selectedSubject, selectedYear],
     queryFn: () => {
       const sp = new URLSearchParams({ page: String(page), limit: "20" });
       if (debouncedSearch.trim()) sp.set("search", debouncedSearch.trim());
+      if (selectedSubject !== "all") sp.set("subject", selectedSubject);
+      if (selectedYear !== "all") sp.set("year", selectedYear);
       return adminFetch<{ data: PypPaper[]; pagination: { page: number; limit: number; total: number; totalPages: number } }>(
         `/api/admin/pyp?${sp.toString()}`,
       );
@@ -333,23 +337,63 @@ export default function PypAdminPage() {
         </Button>
       </div>
 
-      {/* Search */}
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-        <Input
-          value={search}
-          onChange={(e) => {
-            const val = e.target.value;
-            setSearch(val);
-            if (searchTimer.current) clearTimeout(searchTimer.current);
-            searchTimer.current = setTimeout(() => {
-              setDebouncedSearch(val);
-              setPage(1);
-            }, 400);
+      {/* Search + Filters */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative max-w-sm flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input
+            value={search}
+            onChange={(e) => {
+              const val = e.target.value;
+              setSearch(val);
+              if (searchTimer.current) clearTimeout(searchTimer.current);
+              searchTimer.current = setTimeout(() => {
+                setDebouncedSearch(val);
+                setPage(1);
+              }, 400);
+            }}
+            placeholder="Search papers..."
+            className="pl-9 rounded-xl h-10"
+          />
+        </div>
+        <Select
+          value={selectedSubject}
+          onValueChange={(v) => {
+            setSelectedSubject(v);
+            setPage(1);
           }}
-          placeholder="Search papers..."
-          className="pl-9 rounded-xl h-10"
-        />
+        >
+          <SelectTrigger className="w-full sm:w-[160px] rounded-xl h-10">
+            <SelectValue placeholder="All Subjects" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Subjects</SelectItem>
+            {subjects.map((s) => (
+              <SelectItem key={s.id} value={s.name}>
+                {s.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select
+          value={selectedYear}
+          onValueChange={(v) => {
+            setSelectedYear(v);
+            setPage(1);
+          }}
+        >
+          <SelectTrigger className="w-full sm:w-[120px] rounded-xl h-10">
+            <SelectValue placeholder="All Years" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Years</SelectItem>
+            {YEARS.map((y) => (
+              <SelectItem key={y} value={String(y)}>
+                {y}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Table Card */}

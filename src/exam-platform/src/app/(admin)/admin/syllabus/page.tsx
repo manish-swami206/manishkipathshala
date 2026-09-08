@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Plus,
@@ -10,6 +10,7 @@ import {
   FileText,
   Loader2,
   Upload,
+  Search,
 } from "lucide-react";
 import { motion, AnimatePresence, type Variants } from "motion/react";
 
@@ -45,8 +46,16 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
 import { useToast } from "@/hooks/use-toast";
+import { useListSubjects } from "@/lib/api";
 import { useAdminFetch } from "@/hooks/useAdminFetch";
 import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
 import { AdminPagination } from "@/components/admin/AdminPagination";
@@ -103,6 +112,12 @@ export default function SyllabusAdminPage() {
   const qc = useQueryClient();
   const adminFetch = useAdminFetch();
   const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [selectedSubject, setSelectedSubject] = useState<string>("all");
+
+  const { data: subjects = [] } = useListSubjects();
 
   // Detail Dialog
   const [viewingItem, setViewingItem] = useState<SyllabusItem | null>(null);
@@ -147,11 +162,16 @@ export default function SyllabusAdminPage() {
 
   // ── Queries ────────────────────────────────────────────────────────────────
   const { data: syllabusResponse, isLoading } = useQuery({
-    queryKey: ["admin", "syllabus", page],
-    queryFn: () => adminFetch<{
-      data: SyllabusItem[];
-      pagination: { page: number; limit: number; total: number; totalPages: number };
-    }>(`/api/admin/syllabus?page=${page}&limit=20`),
+    queryKey: ["admin", "syllabus", page, debouncedSearch, selectedSubject],
+    queryFn: () => {
+      const sp = new URLSearchParams({ page: String(page), limit: "20" });
+      if (debouncedSearch.trim()) sp.set("search", debouncedSearch.trim());
+      if (selectedSubject !== "all") sp.set("subject", selectedSubject);
+      return adminFetch<{
+        data: SyllabusItem[];
+        pagination: { page: number; limit: number; total: number; totalPages: number };
+      }>(`/api/admin/syllabus?${sp.toString()}`);
+    },
   });
   const list = syllabusResponse?.data ?? [];
   const totalPages = syllabusResponse?.pagination?.totalPages ?? 1;
@@ -360,6 +380,46 @@ export default function SyllabusAdminPage() {
               </Button>
             </motion.div>
           </div>
+        </div>
+
+        {/* ── Filters ─────────────────────────────────────────────────────── */}
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative max-w-sm flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              value={search}
+              onChange={(e) => {
+                const val = e.target.value;
+                setSearch(val);
+                if (searchTimer.current) clearTimeout(searchTimer.current);
+                searchTimer.current = setTimeout(() => {
+                  setDebouncedSearch(val);
+                  setPage(1);
+                }, 400);
+              }}
+              placeholder="Search syllabus..."
+              className="pl-9 rounded-xl h-10"
+            />
+          </div>
+          <Select
+            value={selectedSubject}
+            onValueChange={(v) => {
+              setSelectedSubject(v);
+              setPage(1);
+            }}
+          >
+            <SelectTrigger className="w-full sm:w-[180px] rounded-xl h-10">
+              <SelectValue placeholder="All Subjects" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Subjects</SelectItem>
+              {subjects.map((s) => (
+                <SelectItem key={s.id} value={s.name}>
+                  {s.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* ── Table Card ──────────────────────────────────────────────────── */}

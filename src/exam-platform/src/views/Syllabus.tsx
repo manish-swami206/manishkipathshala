@@ -1,15 +1,38 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { PageTransition } from "@/components/shared/PageTransition";
 import { DocumentActionButton } from "@/components/shared/DocumentActionButton";
-import { useListSyllabus } from "@/lib/api";
+import { useListSyllabus, useListSubjects } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { FileText, BookOpen } from "lucide-react";
 
 export default function Syllabus() {
-  const { data: syllabi, isLoading } = useListSyllabus();
+  const [selectedSubject, setSelectedSubject] = useState<string>("all");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+
+  const { data: subjects = [] } = useListSubjects();
+  const { data: syllabi, isLoading } = useListSyllabus(
+    selectedSubject !== "all" || selectedCategory !== "all"
+      ? {
+          ...(selectedSubject !== "all" ? { subject: selectedSubject } : {}),
+          ...(selectedCategory !== "all" ? { examCategory: selectedCategory } : {}),
+        }
+      : undefined,
+  );
+
+  // Extract unique exam categories from subjects
+  const examCategories = Array.from(
+    new Set(subjects.map((s) => s.examCategory).filter(Boolean)),
+  );
 
   return (
     <PageTransition className="max-w-5xl mx-auto px-4 py-6 md:px-6 md:py-8">
@@ -19,6 +42,47 @@ export default function Syllabus() {
         <p className="mt-1 text-sm text-muted-foreground">
           Explore premium educational resources
         </p>
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-3 mb-6">
+        <Select
+          value={selectedSubject}
+          onValueChange={(v) => {
+            setSelectedSubject(v);
+          }}
+        >
+          <SelectTrigger className="w-full sm:w-[180px] rounded-xl h-10">
+            <SelectValue placeholder="All Subjects" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Subjects</SelectItem>
+            {subjects.map((s) => (
+              <SelectItem key={s.id} value={s.name}>
+                {s.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select
+          value={selectedCategory}
+          onValueChange={(v) => {
+            setSelectedCategory(v);
+          }}
+        >
+          <SelectTrigger className="w-full sm:w-[180px] rounded-xl h-10">
+            <SelectValue placeholder="All Categories" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Categories</SelectItem>
+            {examCategories.map((cat) => (
+              <SelectItem key={cat} value={cat!}>
+                {cat}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="space-y-4">

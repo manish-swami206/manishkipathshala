@@ -4,6 +4,7 @@ import {
   previousYearPapersTable,
   syllabusTable,
   mockTestsTable,
+  subjects,
 } from "@workspace/db";
 import { eq, ilike, and, desc, sql } from "drizzle-orm";
 import { cacheGet, cacheSet, CacheTTL } from "../../lib/cache";
@@ -25,7 +26,7 @@ export async function listPyp(req: Request, res: Response, next: NextFunction) {
     const conditions = [eq(previousYearPapersTable.isActive, true)];
     if (examName) conditions.push(ilike(previousYearPapersTable.examName, `%${examName}%`));
     if (yearStr) conditions.push(eq(previousYearPapersTable.year, parseInt(yearStr, 10)));
-    if (subject) conditions.push(eq(previousYearPapersTable.subject, subject));
+    if (subject) conditions.push(ilike(previousYearPapersTable.subject, subject));
 
     const where = and(...conditions);
 
@@ -56,14 +57,32 @@ export async function listPyp(req: Request, res: Response, next: NextFunction) {
 
 export async function listSyllabus(req: Request, res: Response, next: NextFunction) {
   try {
-    const cacheKey = "syllabus:list";
+    const { subject, examCategory } = req.query as Record<string, string>;
+
+    const cacheKey = `syllabus:list:${subject ?? ""}:${examCategory ?? ""}`;
     const cached = await cacheGet<unknown[]>(cacheKey);
     if (cached) { res.json(cached); return; }
 
-    const all = await db
-      .select()
-      .from(syllabusTable)
-      .where(eq(syllabusTable.isActive, true));
+    const conditions = [eq(syllabusTable.isActive, true)];
+    if (examCategory) conditions.push(ilike(syllabusTable.examCategory, examCategory));
+
+    const where = and(...conditions);
+
+    let all;
+    if (subject) {
+      // Filter by subject name via subjects table join
+      all = await db
+        .select({ syllabus: syllabusTable })
+        .from(syllabusTable)
+        .innerJoin(subjects, eq(syllabusTable.subjectId, subjects.id))
+        .where(and(...conditions, ilike(subjects.name, subject)))
+        .then(rows => rows.map(r => r.syllabus));
+    } else {
+      all = await db
+        .select()
+        .from(syllabusTable)
+        .where(where);
+    }
     await cacheSet(cacheKey, all, CacheTTL.QUESTIONS);
     return res.json(all);
   } catch (err) {

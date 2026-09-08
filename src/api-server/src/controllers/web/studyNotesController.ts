@@ -21,7 +21,7 @@ export async function listStudyNotes(req: Request, res: Response, next: NextFunc
     if (cached) { res.json(cached); return; }
 
     const conditions = [eq(studyNotesTable.isActive, true)];
-    if (subject) conditions.push(eq(studyNotesTable.subject, subject));
+    if (subject) conditions.push(ilike(studyNotesTable.subject, subject));
     if (medium) conditions.push(eq(studyNotesTable.medium, medium));
     if (search) conditions.push(ilike(studyNotesTable.title, `%${search}%`));
     const where = conditions.length ? and(...conditions) : undefined;

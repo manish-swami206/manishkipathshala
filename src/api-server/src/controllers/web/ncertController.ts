@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { db } from "../../db";
 import { ncertBooksTable, questionsTable, examSetsTable } from "@workspace/db";
-import { eq, inArray, and, sql, desc } from "drizzle-orm";
+import { eq, ilike, inArray, and, sql, desc } from "drizzle-orm";
 import { cacheGet, cacheSet, CacheTTL } from "../../lib/cache";
 
 function mapQuestion(q: {
@@ -134,7 +134,7 @@ export async function getNcertBooks(req: Request, res: Response, next: NextFunct
 
     const conditions = [eq(ncertBooksTable.isActive, true)];
     if (classNum) conditions.push(eq(ncertBooksTable.classNum, parseInt(classNum, 10)));
-    if (subject) conditions.push(eq(ncertBooksTable.subject, subject));
+    if (subject) conditions.push(ilike(ncertBooksTable.subject, subject));
     if (medium) conditions.push(eq(ncertBooksTable.medium, medium));
     const where = and(...conditions);
 

@@ -1,0 +1,11 @@
+text,optionA,optionB,optionC,optionD,correctIndex,explanation,subject,difficulty
+"What is the capital of France?","Paris","London","Berlin","Madrid",1,"Paris is the capital and largest city of France.","Geography",easy
+"Which planet is known as the Red Planet?","Venus","Mars","Jupiter","Saturn",1,"Mars appears red due to iron oxide on its surface.","Science",easy
+"What is the largest ocean on Earth?","Atlantic","Indian","Arctic","Pacific",3,"The Pacific Ocean covers about 63 million square miles.","Geography",easy
+"Who wrote the Indian national anthem?","Bankim Chandra Chatterjee","Rabindranath Tagore","Mahatma Gandhi","Jawaharlal Nehru",1,"Jana Gana Mana was written by Rabindranath Tagore.","History",easy
+"What is the chemical symbol for Gold?","Go","Gd","Au","Ag",2,"Au comes from the Latin word 'Aurum'.","Science",easy
+"Which is the longest river in the world?","Amazon","Nile","Yangtze","Mississippi",1,"The Nile is approximately 6,650 km long.","Geography",medium
+"The Battle of Plassey was fought in which year?","1757","1857","1947","1764",0,"The Battle of Plassey was fought on 23 June 1757.","History",medium
+"What is the powerhouse of the cell?","Nucleus","Ribosome","Mitochondria","Golgi body",2,"Mitochondria generate most of the cell's ATP supply.","Science",easy
+"Which article of the Indian Constitution deals with Right to Equality?","Article 12","Article 14","Article 19","Article 21",1,"Article 14 guarantees equality before law and equal protection of laws.","Polity",medium
+"What is the SI unit of force?","Joule","Watt","Newton","Pascal",2,"Newton (N) is defined as kg·m/s².","Science",easy

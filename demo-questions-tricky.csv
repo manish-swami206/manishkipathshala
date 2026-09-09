@@ -1,0 +1,6 @@
+Question,option_a,option_b,option_c,option_d,answer,exp,Subject,level
+"What is 2 + 2?","1","2","3","4",3,"Basic arithmetic","Mathematics",easy
+"Which gas do plants absorb?","Oxygen","Nitrogen","Carbon Dioxide","Hydrogen",2,"Plants use CO2 in photosynthesis","Science",easy
+"Who was the first President of India?","Mahatma Gandhi","Jawaharlal Nehru","Dr. Rajendra Prasad","Sardar Patel",2,"Dr. Rajendra Prasad served from 1950 to 1962","History",easy
+"What is the square root of 144?","10","11","12","13",2,"12 × 12 = 144","Mathematics",easy
+"Which vitamin is produced when skin is exposed to sunlight?","Vitamin A","Vitamin B","Vitamin C","Vitamin D",3,"Vitamin D synthesis requires UVB radiation","Science",medium

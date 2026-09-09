@@ -57,26 +57,32 @@ interface CsvImportReviewProps {
 
 // ── Columns CSV should have (multi-format support) ────────────────────────────
 const KNOWN_COLUMNS = [
-  { names: ["text", "Question", "question_text", "question"], field: "text" },
+  { names: ["text", "question", "question_text"], field: "text" },
 
-  { names: ["optionA", "option_a", "OptionA", "a"], field: "optionA" },
-  { names: ["optionB", "option_b", "OptionB", "b"], field: "optionB" },
-  { names: ["optionC", "option_c", "OptionC", "c"], field: "optionC" },
-  { names: ["optionD", "option_d", "OptionD", "d"], field: "optionD" },
-  { names: ["correctIndex", "correct_index", "CorrectIndex", "answer"], field: "correctIndex" },
-  { names: ["explanation", "Explanation", "exp"], field: "explanation" },
-  { names: ["subject", "Subject"], field: "subject" },
-  { names: ["difficulty", "Difficulty", "level"], field: "difficulty" },
+  { names: ["optiona", "option_a", "a"], field: "optionA" },
+  { names: ["optionb", "option_b", "b"], field: "optionB" },
+  { names: ["optionc", "option_c", "c"], field: "optionC" },
+  { names: ["optiond", "option_d", "d"], field: "optionD" },
+  { names: ["correctindex", "correct_index", "answer", "correct"], field: "correctIndex" },
+  { names: ["explanation", "exp"], field: "explanation" },
+  { names: ["subject"], field: "subject" },
+  { names: ["difficulty", "level"], field: "difficulty" },
 
-  { names: ["negativeMarking", "negative_marking", "negMarks"], field: "negativeMarking" },
+  { names: ["negativemarking", "negative_marking", "negmarks"], field: "negativeMarking" },
 ];
 
 function detectField(row: Record<string, string>, field: string): string {
   const col = KNOWN_COLUMNS.find((c) => c.field === field);
   if (!col) return "";
+  // Build a lowercase-key lookup for case-insensitive matching
+  const lowerRow: Record<string, string> = {};
+  for (const key of Object.keys(row)) {
+    lowerRow[key.toLowerCase()] = row[key];
+  }
   for (const name of col.names) {
-    if (row[name] !== undefined && row[name] !== null && row[name] !== "") {
-      return row[name].trim();
+    const val = lowerRow[name.toLowerCase()];
+    if (val !== undefined && val !== null && val !== "") {
+      return val.trim();
     }
   }
   return "";
@@ -84,10 +90,12 @@ function detectField(row: Record<string, string>, field: string): string {
 
 function parseCorrectIndex(raw: string): number {
   if (!raw) return 0;
-  const trimmed = raw.trim();
+  const trimmed = raw.trim().toLowerCase();
   const letterMap: Record<string, number> = { a: 0, b: 1, c: 2, d: 3 };
-  const lower = trimmed.toLowerCase();
-  if (lower in letterMap) return letterMap[lower];
+  if (trimmed in letterMap) return letterMap[trimmed];
+  // Handle "option A" / "option a" / "opt a" style
+  const optMatch = trimmed.match(/(?:option|opt)\s*([a-d])/);
+  if (optMatch) return letterMap[optMatch[1]];
   const num = parseInt(trimmed, 10);
   return Number.isFinite(num) && num >= 0 && num <= 3 ? num : 0;
 }
@@ -476,12 +484,17 @@ type UploadQuestion = Omit<ParsedQuestion, "rowIndex">;
                           </div>
                         )}
 
-                        {q.subject && issues.length === 0 && (
-                          <div className="mt-1.5 flex items-center gap-1">
-                            <CheckCircle2 className="w-3 h-3 text-green-500" />
-                            <span className="text-[10px] text-green-600">Ready</span>
-                          </div>
-                        )}
+                        <div className="mt-1.5 flex items-center gap-2">
+                          {q.subject && issues.length === 0 && (
+                            <div className="flex items-center gap-1">
+                              <CheckCircle2 className="w-3 h-3 text-green-500" />
+                              <span className="text-[10px] text-green-600">Ready</span>
+                            </div>
+                          )}
+                          <span className="text-[10px] text-gray-400">
+                            Correct: {["A", "B", "C", "D"][q.correctIndex] ?? "?"}
+                          </span>
+                        </div>
                       </div>
                     );
                   })}

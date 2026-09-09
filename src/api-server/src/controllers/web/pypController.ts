@@ -39,7 +39,7 @@ export async function listPyp(req: Request, res: Response, next: NextFunction) {
         .select()
         .from(previousYearPapersTable)
         .where(where)
-        .orderBy(desc(previousYearPapersTable.year))
+        .orderBy(desc(previousYearPapersTable.year), desc(previousYearPapersTable.createdAt))
         .limit(limitNum)
         .offset(offset),
     ]);
@@ -76,12 +76,14 @@ export async function listSyllabus(req: Request, res: Response, next: NextFuncti
         .from(syllabusTable)
         .innerJoin(subjects, eq(syllabusTable.subjectId, subjects.id))
         .where(and(...conditions, ilike(subjects.name, subject)))
+        .orderBy(desc(syllabusTable.createdAt))
         .then(rows => rows.map(r => r.syllabus));
     } else {
       all = await db
         .select()
         .from(syllabusTable)
-        .where(where);
+        .where(where)
+        .orderBy(desc(syllabusTable.createdAt));
     }
     await cacheSet(cacheKey, all, CacheTTL.QUESTIONS);
     return res.json(all);

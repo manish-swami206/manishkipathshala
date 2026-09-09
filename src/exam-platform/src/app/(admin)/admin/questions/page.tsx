@@ -267,7 +267,7 @@ export default function QuestionsAdminPage() {
       }),
     onSuccess: async () => {
       invalidate();
-      await invalidateCache("questions");
+      await invalidateCache("questions", adminFetch);
       toast({ title: "Created!", description: "Question added successfully." });
       setSheetOpen(false);
     },
@@ -286,7 +286,7 @@ export default function QuestionsAdminPage() {
       }),
     onSuccess: async () => {
       invalidate();
-      await invalidateCache("questions");
+      await invalidateCache("questions", adminFetch);
       toast({ title: "Saved!", description: "Question updated." });
       setSheetOpen(false);
     },
@@ -301,7 +301,7 @@ export default function QuestionsAdminPage() {
       adminFetch<{ success?: boolean }>(`/api/admin/questions/${id}`, { method: "DELETE" }),
     onSuccess: async () => {
       invalidate();
-      await invalidateCache("questions");
+      await invalidateCache("questions", adminFetch);
       setDeleteId(null);
       toast({ title: "Deleted", description: "Question removed." });
     },
@@ -327,7 +327,7 @@ export default function QuestionsAdminPage() {
       }),
     onSuccess: async () => {
       invalidate();
-      await invalidateCache("questions");
+      await invalidateCache("questions", adminFetch);
       setSelectedIds([]);
       setBulkDeleteOpen(false);
       toast({ title: "Deleted", description: `${selectedIds.length} questions removed.` });
@@ -383,7 +383,7 @@ export default function QuestionsAdminPage() {
       }),
     onSuccess: async (res) => {
       invalidate();
-      await invalidateCache("questions");
+      await invalidateCache("questions", adminFetch);
       toast({ title: "Imported!", description: `Successfully uploaded ${res.count} questions.` });
     },
     onError: (err: Error) => {

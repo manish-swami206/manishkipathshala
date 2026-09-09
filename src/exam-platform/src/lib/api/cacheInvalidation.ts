@@ -5,8 +5,6 @@
  * This ensures both the backend node-cache and Upstash Redis are cleared.
  */
 
-import { apiFetch } from "./client";
-
 type EntityType =
   | "questions"
   | "subjects"
@@ -29,22 +27,27 @@ interface InvalidateCacheResponse {
   timestamp: string;
 }
 
+type AdminFetchFn = <T>(path: string, options?: RequestInit & { token?: string }) => Promise<T>;
+
 /**
  * Invalidate cache for a specific entity type.
  * Call this after any successful mutation in admin pages.
  *
+ * @param adminFetch - The authenticated admin fetch function from useAdminFetch()
+ *
  * @example
- * await invalidateCache("questions");
- * await invalidateCache("current-affairs");
+ * await invalidateCache("questions", adminFetch);
  */
 export async function invalidateCache(
   entity: EntityType,
+  adminFetch: AdminFetchFn,
 ): Promise<InvalidateCacheResponse> {
   try {
-    return await apiFetch<InvalidateCacheResponse>(
-      "/admin/cache/invalidate",
+    return await adminFetch<InvalidateCacheResponse>(
+      "/api/admin/cache/invalidate",
       {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ entity }),
       },
     );
@@ -63,16 +66,18 @@ export async function invalidateCache(
  * Invalidate cache for multiple entity types at once.
  *
  * @example
- * await invalidateMultipleCache(["questions", "dashboard"]);
+ * await invalidateMultipleCache(["questions", "dashboard"], adminFetch);
  */
 export async function invalidateMultipleCache(
   entities: EntityType[],
+  adminFetch: AdminFetchFn,
 ): Promise<InvalidateCacheResponse> {
   try {
-    return await apiFetch<InvalidateCacheResponse>(
-      "/admin/cache/invalidate",
+    return await adminFetch<InvalidateCacheResponse>(
+      "/api/admin/cache/invalidate",
       {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ entities }),
       },
     );
@@ -90,12 +95,15 @@ export async function invalidateMultipleCache(
  * Flush all caches (nuclear option).
  * Use sparingly — only for major data imports or migrations.
  */
-export async function flushAllCache(): Promise<InvalidateCacheResponse> {
+export async function flushAllCache(
+  adminFetch: AdminFetchFn,
+): Promise<InvalidateCacheResponse> {
   try {
-    return await apiFetch<InvalidateCacheResponse>(
-      "/admin/cache/invalidate",
+    return await adminFetch<InvalidateCacheResponse>(
+      "/api/admin/cache/invalidate",
       {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "flush-all" }),
       },
     );

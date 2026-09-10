@@ -16,7 +16,7 @@ export default function MockTestDetail() {
   const router = useRouter();
   const id = params?.id ?? "";
   const { requireAuth } = useRequireAuth();
-  const { data: test, isLoading, isError } = useGetMockTest(id, { query: { enabled: !!id, queryKey: getGetMockTestQueryKey(id), staleTime: 0 } });
+  const { data: test, isLoading, isError } = useGetMockTest(id, { query: { enabled: !!id, queryKey: getGetMockTestQueryKey(id) } });
 
   if (isLoading) {
     return <div className="p-8"><Skeleton className="h-[400px] max-w-3xl mx-auto rounded-3xl" /></div>;

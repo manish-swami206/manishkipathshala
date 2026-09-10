@@ -3,18 +3,29 @@
 import React from "react";
 import Link from "next/link";
 import { PageTransition } from "@/components/shared/PageTransition";
-import { useListMockTests } from "@/lib/api";
+import { useListMockTests, useGetMockTest, getGetMockTestQueryKey } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
 import { Clock, FileText, Award, Play, ClipboardCheck } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function MockTests() {
-  const { data: testsRes, isLoading } = useListMockTests({
-    query: { staleTime: 0 },
-  });
+  const { data: testsRes, isLoading } = useListMockTests();
   const tests = testsRes?.data ?? [];
+  const qc = useQueryClient();
+
+  const prefetchTest = (id: string) => {
+    qc.prefetchQuery({
+      queryKey: getGetMockTestQueryKey(id),
+      queryFn: async () => {
+        const { apiFetch } = await import("@/lib/api/client");
+        return apiFetch(`/mock-tests/${id}`);
+      },
+      staleTime: 15 * 60 * 1000,
+    });
+  };
 
   return (
     <PageTransition className="p-4 md:p-8 max-w-6xl mx-auto space-y-6">
@@ -60,7 +71,7 @@ export default function MockTests() {
                   </div>
                 </div>
 
-                <Link href={`/mock-tests/${test.id}`} className="mt-auto pt-4">
+                <Link href={`/mock-tests/${test.id}`} className="mt-auto pt-4" onMouseEnter={() => prefetchTest(test.id)}>
                   <Button className="w-full rounded-xl h-12 bg-foreground text-background hover:bg-foreground/90 shadow-xl shadow-foreground/10 text-base font-semibold">
                     Launch Session
                   </Button>

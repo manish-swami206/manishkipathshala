@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { PageTransition } from "@/components/shared/PageTransition";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { quizzesApi } from "@/lib/api/endpoints";
 import { queryKeys } from "@/lib/api/query-keys";
 import { Card, CardContent } from "@/components/ui/card";
@@ -24,12 +24,23 @@ import PageHeading from "@/components/shared/PageHeading";
 
 export default function QuizListing() {
   const [activeTab, setActiveTab] = useState<"ongoing" | "history">("ongoing");
+  const qc = useQueryClient();
 
   const { data: quizzes, isLoading } = useQuery({
     queryKey: queryKeys.quizzes.list({ status: activeTab }),
     queryFn: () => quizzesApi.list({ status: activeTab }),
-    staleTime: 0,
   });
+
+  const prefetchQuiz = (id: string) => {
+    qc.prefetchQuery({
+      queryKey: queryKeys.quizzes.detail(id),
+      queryFn: async () => {
+        const { apiFetch } = await import("@/lib/api/client");
+        return apiFetch(`/daily-quizzes/${id}`);
+      },
+      staleTime: 15 * 60 * 1000,
+    });
+  };
 
   return (
     <PageTransition className="p-4 md:p-8 max-w-5xl mx-auto space-y-6">
@@ -70,7 +81,7 @@ export default function QuizListing() {
               </div>
             ) : (
               quizzes?.map((quiz: QuizListItem) => (
-                <QuizCard key={quiz.id} quiz={quiz} type="ongoing" />
+                <QuizCard key={quiz.id} quiz={quiz} type="ongoing" onHover={prefetchQuiz} />
               ))
             )}
           </div>
@@ -109,9 +120,11 @@ export default function QuizListing() {
 function QuizCard({
   quiz,
   type,
+  onHover,
 }: {
   quiz: QuizListItem;
   type: "ongoing" | "history";
+  onHover?: (id: string) => void;
 }) {
   return (
     <Card className="card-hover border-border/50 rounded-2xl bg-card overflow-hidden flex flex-col">
@@ -150,7 +163,7 @@ function QuizCard({
         </div>
 
         {type === "ongoing" && (
-          <Link href={`/daily-quiz/${quiz.id}`}>
+          <Link href={`/daily-quiz/${quiz.id}`} onMouseEnter={() => onHover?.(quiz.id)}>
             <Button className="w-full mt-4 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90">
               <Play className="w-4 h-4 mr-2" /> Start Quiz
             </Button>

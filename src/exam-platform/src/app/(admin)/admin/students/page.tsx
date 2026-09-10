@@ -63,7 +63,6 @@ export default function StudentsPage() {
     enabled: !!selectedUserId,
     staleTime: 30 * 1000,
   });
-  console.log(data?.data, attempts);
   return (
     <div className="p-6 md:p-8 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">

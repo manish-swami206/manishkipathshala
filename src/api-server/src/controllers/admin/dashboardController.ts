@@ -30,20 +30,20 @@ export async function getDashboardStats(_req: Request, res: Response, next: Next
       [attemptRow],
       [passedRow],
       [studentsRow],
-      [newStudentsRow],
-      [quizzesRow],
-      [mockTestsRow],
-      [currentAffairsRow],
-      [openTicketsRow],
-      recentActivity,
-      recentStudents,
-      activityChartRaw,
-      topQuizzes,
     ] = await Promise.all([
       db.select({ count: sql<number>`count(*)` }).from(questionsTable),
       db.select({ count: sql<number>`count(*)` }).from(studentAttemptsTable),
       db.select({ count: sql<number>`count(*)` }).from(studentAttemptsTable).where(sql`is_passed = true`),
       db.select({ count: sql<number>`count(*)` }).from(userStreaksTable),
+    ]);
+
+    const [
+      [newStudentsRow],
+      [quizzesRow],
+      [mockTestsRow],
+      [currentAffairsRow],
+      [openTicketsRow],
+    ] = await Promise.all([
       db
         .select({ count: sql<number>`count(*)` })
         .from(activityLogsTable)
@@ -52,12 +52,18 @@ export async function getDashboardStats(_req: Request, res: Response, next: Next
       db.select({ count: sql<number>`count(*)` }).from(mockTestsTable),
       db.select({ count: sql<number>`count(*)` }).from(currentAffairsTable),
       db.select({ count: sql<number>`count(*)` }).from(supportTicketsTable).where(ne(supportTicketsTable.status, "closed")),
+    ]);
+
+    const [
+      recentActivity,
+      recentStudents,
+      activityChartRaw,
+    ] = await Promise.all([
       db
         .select()
         .from(activityLogsTable)
         .orderBy(desc(activityLogsTable.createdAt))
         .limit(10),
-      // Recent registered students
       db
         .select({
           id: userStreaksTable.userId,
@@ -68,44 +74,63 @@ export async function getDashboardStats(_req: Request, res: Response, next: Next
         .from(userStreaksTable)
         .orderBy(desc(userStreaksTable.createdAt))
         .limit(5),
-      // Daily activity for engagement chart (last 30 days)
       db
         .select({
-          date: sql<string>`to_char(${activityLogsTable.createdAt}::timestamp, 'YYYY-MM-DD')`,
-          action: activityLogsTable.action,
-        })
-        .from(activityLogsTable)
-        .where(gte(activityLogsTable.createdAt, thirtyDaysAgo))
-        .orderBy(desc(activityLogsTable.createdAt)),
-      // Top quizzes by attempt count
-      db
-        .select({
-          title: sql<string>`coalesce(${studentAttemptsTable.examId}::text, 'Unknown')`,
+          date: sql<string>`to_char(${studentAttemptsTable.createdAt}::timestamp, 'YYYY-MM-DD')`,
           attempts: sql<number>`count(*)`,
         })
         .from(studentAttemptsTable)
-        .where(sql`${studentAttemptsTable.examId} IS NOT NULL`)
-        .groupBy(studentAttemptsTable.examId)
-        .orderBy(sql<number>`count(*) desc`)
-        .limit(5),
+        .where(gte(studentAttemptsTable.createdAt, thirtyDaysAgo))
+        .groupBy(sql<string>`to_char(${studentAttemptsTable.createdAt}::timestamp, 'YYYY-MM-DD')`)
+        .orderBy(sql<string>`to_char(${studentAttemptsTable.createdAt}::timestamp, 'YYYY-MM-DD')`),
     ]);
 
-    // Transform raw activity logs into daily aggregates for the chart
+    const topQuizzesRaw = await db
+      .select({
+        examId: studentAttemptsTable.examId,
+        activityType: studentAttemptsTable.activityType,
+        attempts: sql<number>`count(*)`,
+      })
+      .from(studentAttemptsTable)
+      .where(sql`${studentAttemptsTable.examId} IS NOT NULL`)
+      .groupBy(studentAttemptsTable.examId, studentAttemptsTable.activityType)
+      .orderBy(sql<number>`count(*) desc`)
+      .limit(5);
+
+    const newUsersChartRaw = await db
+      .select({
+        date: sql<string>`to_char(${activityLogsTable.createdAt}::timestamp, 'YYYY-MM-DD')`,
+        count: sql<number>`count(*)`,
+      })
+      .from(activityLogsTable)
+      .where(and(eq(activityLogsTable.action, "user.created"), gte(activityLogsTable.createdAt, thirtyDaysAgo)))
+      .groupBy(sql<string>`to_char(${activityLogsTable.createdAt}::timestamp, 'YYYY-MM-DD')`)
+      .orderBy(sql<string>`to_char(${activityLogsTable.createdAt}::timestamp, 'YYYY-MM-DD')`);
+
+    const newUsersMap = new Map<string, number>();
+    for (const row of newUsersChartRaw) {
+      newUsersMap.set(row.date, Number(row.count));
+    }
+
+    // Merge attempts + new users into a single chart
     const activityChartMap = new Map<string, { date: string; quizAttempts: number; newUsers: number }>();
     for (const row of activityChartRaw) {
       const date = row.date;
       if (!activityChartMap.has(date)) {
         activityChartMap.set(date, { date, quizAttempts: 0, newUsers: 0 });
       }
-      const entry = activityChartMap.get(date)!;
-      if (row.action.startsWith("quiz") || row.action.startsWith("mock") || row.action.startsWith("pyq")) {
-        entry.quizAttempts++;
-      }
-      if (row.action === "user.created") {
-        entry.newUsers++;
-      }
+      activityChartMap.get(date)!.quizAttempts += Number(row.attempts);
     }
-    const activityChart = Array.from(activityChartMap.values()).reverse();
+    for (const [date, count] of newUsersMap) {
+      if (!activityChartMap.has(date)) {
+        activityChartMap.set(date, { date, quizAttempts: 0, newUsers: 0 });
+      }
+      activityChartMap.get(date)!.newUsers = count;
+    }
+    const activityChart = Array.from(activityChartMap.values()).sort((a, b) => a.date.localeCompare(b.date));
+
+    // Resolve quiz names from examId + activityType
+    const topQuizzes = await resolveQuizNames(topQuizzesRaw);
 
     const data = {
       totalQuestions: Number(questionRow.count),
@@ -141,9 +166,48 @@ export async function getDashboardStats(_req: Request, res: Response, next: Next
       })),
     };
 
-    await cacheSet(cacheKey, data, CacheTTL.ANALYTICS);
+    await cacheSet(cacheKey, data, CacheTTL.DASHBOARD_LONG);
     res.json(data);
   } catch (err) {
     return next(err);
   }
+}
+
+/**
+ * Resolve quiz/mock/pyq names from raw examId + activityType pairs.
+ * Tries daily_quizzes → mock_tests → exam_sets in order.
+ */
+async function resolveQuizNames(
+  raw: { examId: string | null; activityType: string | null; attempts: number }[],
+): Promise<{ title: string; attempts: number }[]> {
+  if (raw.length === 0) return [];
+
+  const results: { title: string; attempts: number }[] = [];
+
+  for (const row of raw) {
+    let title: string | null = null;
+
+    if (row.activityType === "quiz" && row.examId) {
+      const [dq] = await db
+        .select({ title: dailyQuizzes.title })
+        .from(dailyQuizzes)
+        .where(eq(dailyQuizzes.id, row.examId))
+        .limit(1);
+      title = dq?.title ?? null;
+    } else if (row.activityType === "mock" && row.examId) {
+      const [mt] = await db
+        .select({ title: mockTestsTable.title })
+        .from(mockTestsTable)
+        .where(eq(mockTestsTable.id, row.examId))
+        .limit(1);
+      title = mt?.title ?? null;
+    }
+
+    results.push({
+      title: title ?? `Unknown (${row.activityType ?? "unknown"})`,
+      attempts: row.attempts,
+    });
+  }
+
+  return results;
 }

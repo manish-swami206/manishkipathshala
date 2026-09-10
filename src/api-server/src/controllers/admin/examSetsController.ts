@@ -6,6 +6,7 @@ import { z } from "zod";
 import { routeParam } from "../../lib/routeParams";
 import { AppError } from "../../middleware/errorHandler";
 import { slugify } from "../../utils/slugify";
+import { invalidateEntity } from "../../services/cacheInvalidation";
 
 function formatZodIssues(issues: z.ZodIssue[]): string {
   return issues
@@ -104,6 +105,7 @@ export async function createExamSet(req: Request, res: Response, next: NextFunct
       })
       .returning();
 
+    invalidateEntity("exam-sets");
     res.status(201).json(set);
   } catch (err) {
     return next(err);
@@ -134,6 +136,7 @@ export async function updateExamSet(req: Request, res: Response, next: NextFunct
     if (!updated) {
       return next(new AppError(404, "Exam set not found"));
     }
+    invalidateEntity("exam-sets");
     res.json(updated);
   } catch (err) {
     return next(err);
@@ -151,6 +154,7 @@ export async function deleteExamSet(req: Request, res: Response, next: NextFunct
       return next(new AppError(404, "Exam set not found"));
     }
     await db.delete(examSetsTable).where(eq(examSetsTable.id, id));
+    invalidateEntity("exam-sets");
     res.json({ success: true });
   } catch (err) {
     return next(err);

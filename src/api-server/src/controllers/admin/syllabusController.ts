@@ -6,6 +6,7 @@ import { z } from "zod";
 import { routeParam } from "../../lib/routeParams";
 import { AppError } from "../../middleware/errorHandler";
 import { uploadToCloudinary } from "../../config/cloudinary";
+import { invalidateEntity } from "../../services/cacheInvalidation";
 
 const syllabusSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -101,6 +102,7 @@ export async function createSyllabus(req: Request, res: Response, next: NextFunc
       .insert(syllabusTable)
       .values(parsed.data)
       .returning();
+    invalidateEntity("syllabus");
     res.status(201).json(item);
   } catch (err) {
     return next(err);
@@ -138,6 +140,7 @@ export async function updateSyllabus(req: Request, res: Response, next: NextFunc
     if (!updated) {
       return next(new AppError(404, "Syllabus entry not found"));
     }
+    invalidateEntity("syllabus");
     res.json(updated);
   } catch (err) {
     return next(err);
@@ -148,6 +151,7 @@ export async function deleteSyllabus(req: Request, res: Response, next: NextFunc
   try {
     const id = routeParam(req.params.id);
     await db.delete(syllabusTable).where(eq(syllabusTable.id, id));
+    invalidateEntity("syllabus");
     res.json({ success: true });
   } catch (err) {
     return next(err);

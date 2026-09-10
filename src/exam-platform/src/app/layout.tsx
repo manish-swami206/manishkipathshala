@@ -1,9 +1,24 @@
 import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 import { shadcn } from "@clerk/themes";
+import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import Providers from "@/app/providers";
 import "@/index.css";
 import { clerkPublishableKey, isClerkConfigured } from "@/lib/clerk";
+
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+  variable: "--font-inter",
+});
+
+const jakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  display: "swap",
+  variable: "--font-jakarta",
+});
 
 const SITE_NAME = "Manish Ki Pathshala";
 
@@ -51,7 +66,7 @@ const clerkAppearance = {
     colorInput: "#f9fafb",
     colorInputForeground: "#111827",
     colorNeutral: "#e5e7eb",
-    fontFamily: "Inter, system-ui, sans-serif",
+    fontFamily: "var(--font-inter), system-ui, sans-serif",
     borderRadius: "0.75rem",
   },
   elements: {
@@ -93,19 +108,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link
-          rel="preconnect"
-          href="https://fonts.gstatic.com"
-          crossOrigin="anonymous"
-        />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
-          rel="stylesheet"
-        />
-      </head>
+    <html lang="en" suppressHydrationWarning className={`${inter.variable} ${jakarta.variable}`}>
       <body suppressHydrationWarning>
         <ClerkProvider
           publishableKey={clerkPublishableKey}

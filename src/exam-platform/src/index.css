@@ -57,7 +57,7 @@
   --color-sidebar-accent-border: var(--sidebar-accent-border);
   --color-sidebar-ring: hsl(var(--sidebar-ring));
 
-  --font-sans: "Plus Jakarta Sans", sans-serif;
+  --font-sans: var(--font-jakarta), sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: Menlo, monospace;
 

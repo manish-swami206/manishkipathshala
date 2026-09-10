@@ -6,6 +6,7 @@ import { z } from "zod";
 import { routeParam } from "../../lib/routeParams";
 import { AppError } from "../../middleware/errorHandler";
 import { uploadToCloudinary } from "../../config/cloudinary";
+import { invalidateEntity } from "../../services/cacheInvalidation";
 
 const ncertBookSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -104,6 +105,7 @@ export async function createNcertBook(req: Request, res: Response, next: NextFun
       .insert(ncertBooksTable)
       .values(parsed.data)
       .returning();
+    invalidateEntity("ncert-books");
     res.status(201).json(book);
   } catch (err) {
     return next(err);
@@ -126,6 +128,7 @@ export async function updateNcertBook(req: Request, res: Response, next: NextFun
     if (!updated) {
       return next(new AppError(404, "NCERT book not found"));
     }
+    invalidateEntity("ncert-books");
     res.json(updated);
   } catch (err) {
     return next(err);
@@ -136,6 +139,7 @@ export async function deleteNcertBook(req: Request, res: Response, next: NextFun
   try {
     const id = routeParam(req.params.id);
     await db.delete(ncertBooksTable).where(eq(ncertBooksTable.id, id));
+    invalidateEntity("ncert-books");
     res.json({ success: true });
   } catch (err) {
     return next(err);

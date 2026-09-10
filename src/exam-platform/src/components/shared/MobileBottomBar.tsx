@@ -24,7 +24,14 @@ export default function MobileBottomBar() {
   const pathname = usePathname() ?? "";
   const [visible, setVisible] = useState(true);
 
+  // Hide on player routes (full-screen MCQ players)
+  const isPlayer =
+    pathname.includes("/play") ||
+    /^\/ncert-mcq\/.+/.test(pathname) ||
+    /^\/pyq\/.+/.test(pathname);
+
   useEffect(() => {
+    if (isPlayer) return;
     let lastScrollY = window.scrollY;
 
     const handleScroll = () => {
@@ -51,7 +58,9 @@ export default function MobileBottomBar() {
     return () => {
       window.removeEventListener("scroll", handleScroll);
     };
-  }, []);
+  }, [isPlayer]);
+
+  if (isPlayer) return null;
 
   return (
     <motion.nav

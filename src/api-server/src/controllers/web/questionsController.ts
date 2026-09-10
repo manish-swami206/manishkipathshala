@@ -31,8 +31,8 @@ export async function getQuestionsBatch(req: Request, res: Response, next: NextF
     }
 
     const idList = Array.isArray(ids) ? ids.map(String) : [String(ids)];
-    if (idList.length === 0 || idList.length > 200) {
-      return res.status(400).json({ error: "Provide between 1 and 200 question IDs" });
+    if (idList.length === 0 || idList.length > 5000) {
+      return res.status(400).json({ error: "Provide between 1 and 5000 question IDs" });
     }
 
     const cacheKey = `questions:batch:${idList.sort().join(",")}`;

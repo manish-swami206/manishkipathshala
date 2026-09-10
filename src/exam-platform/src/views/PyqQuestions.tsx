@@ -40,7 +40,7 @@ export default function PyqQuestions() {
   const { data, isLoading } = useQuery<PyqQuestionsResponse>({
     queryKey: ["pyq-questions", subjectSlug],
     queryFn: () => {
-      const qp = new URLSearchParams({ limit: "50" });
+      const qp = new URLSearchParams();
       if (subjectSlug) qp.set("setId", subjectSlug);
       return apiFetch<PyqQuestionsResponse>(`/pyq/questions?${qp.toString()}`);
     },

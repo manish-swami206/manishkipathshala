@@ -96,7 +96,7 @@ export async function getPyqQuestions(req: Request, res: Response, next: NextFun
   try {
     const { subjectId, page: pageStr, setId, limit: limitStr } = req.query as Record<string, string>;
     const page = parseInt(pageStr) || 1;
-    const limit = Math.min(100, parseInt(limitStr) || 10);
+    const limit = parseInt(limitStr) || 10000;
     const offset = (page - 1) * limit;
 
     const setConditions = [eq(examSetsTable.type, "pyq"), eq(examSetsTable.isActive, true)];

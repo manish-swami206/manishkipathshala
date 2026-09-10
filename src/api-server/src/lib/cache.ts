@@ -20,6 +20,7 @@ const memory = new NodeCache({ stdTTL: 300, checkperiod: 120 });
 
 export const CacheTTL = {
   DASHBOARD: 300,
+  DASHBOARD_LONG: 86400,
   QUESTIONS: 600,
   ANALYTICS: 900,
   LEADERBOARD: 300,

@@ -6,6 +6,7 @@ import { routeParam } from "../../lib/routeParams";
 import { desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { AppError } from "../../middleware/errorHandler";
+import { invalidateEntity } from "../../services/cacheInvalidation";
 
 const dailyQuizPayloadSchema = z.object({
   title: z.string().min(1),
@@ -92,6 +93,7 @@ export async function createDailyQuiz(req: Request, res: Response, next: NextFun
       })
       .returning();
 
+    invalidateEntity("daily-quizzes");
     return res.status(201).json(result);
   } catch (err) {
     return next(err);
@@ -122,6 +124,7 @@ export async function updateDailyQuiz(req: Request, res: Response, next: NextFun
       return next(new AppError(404, "Quiz not found"));
     }
 
+    invalidateEntity("daily-quizzes");
     return res.json(result);
   } catch (err) {
     return next(err);
@@ -135,6 +138,7 @@ export async function deleteDailyQuiz(req: Request, res: Response, next: NextFun
 
     await db.delete(dailyQuizzes).where(eq(dailyQuizzes.id, id));
 
+    invalidateEntity("daily-quizzes");
     return res.json({ message: "Quiz deleted successfully" });
   } catch (err) {
     return next(err);

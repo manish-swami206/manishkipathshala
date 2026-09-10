@@ -6,6 +6,7 @@ import { z } from "zod";
 import { routeParam } from "../../lib/routeParams";
 import { AppError } from "../../middleware/errorHandler";
 import { uploadToCloudinary } from "../../config/cloudinary";
+import { invalidateEntity } from "../../services/cacheInvalidation";
 
 const pypSchema = z.object({
   examName: z.string().min(1, "Exam name is required"),
@@ -109,6 +110,7 @@ export async function createPyp(req: Request, res: Response, next: NextFunction)
       .insert(previousYearPapersTable)
       .values(parsed.data)
       .returning();
+    invalidateEntity("pyp");
     res.status(201).json(paper);
   } catch (err) {
     return next(err);
@@ -131,6 +133,7 @@ export async function updatePyp(req: Request, res: Response, next: NextFunction)
     if (!updated) {
       return next(new AppError(404, "Paper not found"));
     }
+    invalidateEntity("pyp");
     res.json(updated);
   } catch (err) {
     return next(err);
@@ -141,6 +144,7 @@ export async function deletePyp(req: Request, res: Response, next: NextFunction)
   try {
     const id = routeParam(req.params.id);
     await db.delete(previousYearPapersTable).where(eq(previousYearPapersTable.id, id));
+    invalidateEntity("pyp");
     res.json({ success: true });
   } catch (err) {
     return next(err);

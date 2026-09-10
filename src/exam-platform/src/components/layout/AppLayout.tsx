@@ -202,21 +202,38 @@ export const NOTIF_COLOR: Record<string, string> = {
   info: "text-blue-600 bg-blue-100",
 };
 
+function isPlayerRoute(pathname: string): boolean {
+  return (
+    pathname.includes("/play") ||
+    /^\/ncert-mcq\/.+/.test(pathname) ||
+    /^\/pyq\/.+/.test(pathname)
+  );
+}
+
 export function AppLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname() ?? "";
+  const player = isPlayerRoute(pathname);
+
   return (
     <div className="min-h-dvh flex flex-col bg-background md:flex-row">
       {/* <DesktopSidebar /> */}
       <div className="flex-1 flex flex-col  w-full">
-        <Header />
+        <div className={player ? "hidden" : ""}>
+          <Header />
+        </div>
         <main className="flex-1 pb-20 md:pb-0 overflow-x-hidden bg-gray-50 md:bg-background">
           {children}
-          <Footer />
+          <div className={player ? "hidden" : ""}>
+            <Footer />
+          </div>
         </main>
         <MobileBottomBar />
       </div>
-      <ClientSignedIn>
-        <StreakTracker />
-      </ClientSignedIn>
+      <div className={player ? "hidden" : ""}>
+        <ClientSignedIn>
+          <StreakTracker />
+        </ClientSignedIn>
+      </div>
     </div>
   );
 }

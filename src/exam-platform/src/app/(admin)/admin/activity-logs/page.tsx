@@ -2,15 +2,16 @@
 
 import { useRef, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api/client";
 import { queryKeys } from "@/lib/api/query-keys";
-import { Activity, ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { Activity, ChevronLeft, ChevronRight, Search, Trash2 } from "lucide-react";
 
 type ActivityLogsResponse = {
   data: {
     id: string;
     userId: string;
+    displayName: string;
     action: string;
     entityType: string | null;
     entityId: string | null;
@@ -30,6 +31,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const actionColor: Record<string, string> = {
   create: "bg-green-100 text-green-700 border-green-200",
@@ -50,9 +61,23 @@ export default function ActivityLogsPage() {
   const [page, setPage] = useState(1);
   const [action, setAction] = useState("");
   const [debouncedAction, setDebouncedAction] = useState("");
+  const [clearDialogOpen, setClearDialogOpen] = useState(false);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const qc = useQueryClient();
 
   const { getToken } = useAuth();
+
+  const clearMutation = useMutation({
+    mutationFn: async () => {
+      const token = await getToken();
+      if (!token) throw new Error("Not authenticated");
+      return apiFetch("/admin/activity-logs", { method: "DELETE", token });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "activityLogs"] });
+      setPage(1);
+    },
+  });
 
   const { data, isLoading } = useQuery<ActivityLogsResponse>({
     queryKey: queryKeys.admin.activityLogs.list({
@@ -100,14 +125,27 @@ export default function ActivityLogsPage() {
         </p>
       </div>
 
-      <div className="relative max-w-xs">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-        <Input
-          value={action}
-          onChange={(e) => handleSearch(e.target.value)}
-          placeholder="Filter by action name..."
-          className="pl-9 rounded-lg text-sm h-10"
-        />
+      <div className="flex items-center gap-3">
+        <div className="relative max-w-xs flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input
+            value={action}
+            onChange={(e) => handleSearch(e.target.value)}
+            placeholder="Filter by action name..."
+            className="pl-9 rounded-lg text-sm h-10"
+          />
+        </div>
+        {totalItems > 0 && (
+          <Button
+            variant="destructive"
+            size="sm"
+            className="shrink-0"
+            onClick={() => setClearDialogOpen(true)}
+          >
+            <Trash2 className="h-4 w-4 mr-1.5" />
+            Clear All
+          </Button>
+        )}
       </div>
 
       {isLoading ? (
@@ -160,7 +198,7 @@ export default function ActivityLogsPage() {
                       </Badge>
                     )}
                     <span className="font-mono text-xs text-gray-400 break-all">
-                      by {log.userId.slice(0, 20)}...
+                      by {log.displayName}
                     </span>
                     {log.ipAddress && (
                       <span className="text-[10px] text-gray-400 ml-2 font-mono hidden sm:inline">
@@ -202,6 +240,27 @@ export default function ActivityLogsPage() {
           )}
         </>
       )}
+
+      <AlertDialog open={clearDialogOpen} onOpenChange={setClearDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clear All Activity Logs?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete all activity logs. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700"
+              onClick={() => clearMutation.mutate()}
+              disabled={clearMutation.isPending}
+            >
+              {clearMutation.isPending ? "Clearing..." : "Clear All"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

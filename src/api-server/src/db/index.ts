@@ -13,8 +13,13 @@ if (!connectionString) {
 const pool = new Pool({
   connectionString,
   max: 10,
-  idleTimeoutMillis: 30_000,
-  connectionTimeoutMillis: 5_000,
+  idleTimeoutMillis: 10_000,
+  connectionTimeoutMillis: 10_000,
+  allowExitOnIdle: true,
+});
+
+pool.on("error", (err) => {
+  console.error("[DB] Pool error (idle client disconnected):", err.message);
 });
 
 export const db = drizzle(pool, { schema });

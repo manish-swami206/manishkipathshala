@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import { db } from "../../db";
-import { activityLogsTable } from "@workspace/db";
+import { activityLogsTable, userStreaksTable } from "@workspace/db";
 import { eq, ilike, and, sql, desc } from "drizzle-orm";
 
 export async function listActivityLogs(req: Request, res: Response, next: NextFunction) {
@@ -20,8 +20,18 @@ export async function listActivityLogs(req: Request, res: Response, next: NextFu
         .from(activityLogsTable)
         .where(where),
       db
-        .select()
+        .select({
+          id: activityLogsTable.id,
+          userId: activityLogsTable.userId,
+          action: activityLogsTable.action,
+          entityType: activityLogsTable.entityType,
+          entityId: activityLogsTable.entityId,
+          ipAddress: activityLogsTable.ipAddress,
+          createdAt: activityLogsTable.createdAt,
+          displayName: userStreaksTable.displayName,
+        })
         .from(activityLogsTable)
+        .leftJoin(userStreaksTable, eq(activityLogsTable.userId, userStreaksTable.userId))
         .where(where)
         .orderBy(desc(activityLogsTable.createdAt))
         .limit(limit)
@@ -34,6 +44,7 @@ export async function listActivityLogs(req: Request, res: Response, next: NextFu
     res.json({
       data: logs.map((l) => ({
         ...l,
+        displayName: l.displayName ?? "Unknown User",
         createdAt: l.createdAt.toISOString(),
       })),
       pagination: {
@@ -43,6 +54,15 @@ export async function listActivityLogs(req: Request, res: Response, next: NextFu
         totalPages,
       },
     });
+  } catch (err) {
+    return next(err);
+  }
+}
+
+export async function clearActivityLogs(_req: Request, res: Response, next: NextFunction) {
+  try {
+    await db.delete(activityLogsTable);
+    res.json({ success: true });
   } catch (err) {
     return next(err);
   }

@@ -12,10 +12,8 @@ const Toaster = dynamic(
 
 export default function Providers({
   children,
-  clerkEnabled: _clerkEnabled,
 }: {
   children: React.ReactNode;
-  clerkEnabled?: boolean;
 }) {
   return (
     <UIProvider>

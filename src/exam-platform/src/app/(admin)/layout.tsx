@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import Providers from "@/app/providers";
 
 export const metadata: Metadata = {
   title: "Admin | Manish Ki Pathshala",
@@ -18,5 +19,5 @@ export default async function AdminGroupLayout({
   const role = (sessionClaims?.metadata as { role?: string } | undefined)?.role;
 
   if (role !== "admin") redirect("/");
-  return <>{children}</>;
+  return <Providers>{children}</Providers>;
 }

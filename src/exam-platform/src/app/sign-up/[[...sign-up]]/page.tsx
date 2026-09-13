@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { SignUp, useSignUp } from "@clerk/nextjs";
+import { Suspense } from "react";
+import { SignUp } from "@clerk/nextjs";
 import { isClerkConfigured } from "@/lib/clerk";
 import { SignupStepper } from "@/components/shared/SignupStepper";
+import { useSsoCallbackStepper } from "@/hooks/useSsoCallback";
 
 function SignUpSkeleton() {
   return (
@@ -32,36 +33,24 @@ function SignUpSkeleton() {
   );
 }
 
-/**
- * Shows the stepper when Clerk's SignUp component is processing
- * (after user clicks submit, while Clerk creates the account).
- */
 function SignUpWithStepper() {
-  const { isLoaded, signUp } = useSignUp();
-  const [isProcessing, setIsProcessing] = useState(false);
-
-  // Watch for Clerk processing state — after verify code / create account
-  // TheSignUp component handles the UI; we intercept the loading state
-  if (!isLoaded) {
-    return (
-      <div className="flex min-h-dvh items-center justify-center bg-gray-50">
-        <SignupStepper currentStep={0} />
-      </div>
-    );
-  }
+  // Replaces Clerk's internal spinner during the Google/GitHub OAuth
+  // callback phase (after account selection, while the session finalizes).
+  const ssoStepper = useSsoCallbackStepper();
 
   return (
-    <SignUp
-      fallback={<SignUpSkeleton />}
-      appearance={{
-        elements: {
-          formButtonPrimary: "bg-indigo-600 hover:bg-indigo-700 text-white",
-          card: "shadow-none border-0",
-        },
-      }}
-      // After successful signup, Clerk redirects automatically
-      // The (app) layout will show the stepper during auth resolution
-    />
+    <>
+      {ssoStepper}
+      <SignUp
+        fallback={<SignUpSkeleton />}
+        appearance={{
+          elements: {
+            formButtonPrimary: "bg-indigo-600 hover:bg-indigo-700 text-white",
+            card: "shadow-none border-0",
+          },
+        }}
+      />
+    </>
   );
 }
 
@@ -70,5 +59,9 @@ export default function SignUpPage() {
     return <div className="mx-auto max-w-md px-6 py-20 text-center text-sm text-gray-600">Clerk is not configured for this local environment.</div>;
   }
 
-  return <SignUpWithStepper />;
+  return (
+    <Suspense fallback={<SignUpSkeleton />}>
+      <SignUpWithStepper />
+    </Suspense>
+  );
 }

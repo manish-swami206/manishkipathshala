@@ -1,7 +1,9 @@
 "use client";
 
+import { Suspense } from "react";
 import { SignIn } from "@clerk/nextjs";
 import { isClerkConfigured } from "@/lib/clerk";
+import { useSsoCallbackStepper } from "@/hooks/useSsoCallback";
 
 function SignInSkeleton() {
   return (
@@ -26,14 +28,27 @@ function SignInSkeleton() {
   );
 }
 
+function SignInWithStepper() {
+  // Google sign-in finalizes on this page via ?sso_callback=... — show the
+  // branded stepper instead of Clerk's bare loading spinner during that phase.
+  const ssoStepper = useSsoCallbackStepper();
+
+  return (
+    <>
+      {ssoStepper}
+      <SignIn fallback={<SignInSkeleton />} />
+    </>
+  );
+}
+
 export default function SignInPage() {
   if (!isClerkConfigured) {
     return <div className="mx-auto max-w-md px-6 py-20 text-center text-sm text-gray-600">Clerk is not configured for this local environment.</div>;
   }
 
   return (
-    <SignIn
-      fallback={<SignInSkeleton />}
-    />
+    <Suspense fallback={<SignInSkeleton />}>
+      <SignInWithStepper />
+    </Suspense>
   );
 }

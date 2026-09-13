@@ -106,6 +106,7 @@ pnpm -C src/exam-platform run dev
 | `NODE_ENV`                          | —        | `development`           | Environment mode               |
 | `ALLOWED_ORIGINS`                   | —        | —                       | CORS origins (comma-separated) |
 | `NEXT_PUBLIC_API_URL`               | —        | `http://localhost:4000` | API base URL for frontend      |
+| `CLERK_WEBHOOK_SECRET`              | —        | —                       | Clerk webhook signing secret   |
 
 ## Features
 
@@ -294,6 +295,69 @@ All UI components are built using **shadcn/ui** (Radix UI primitives + Tailwind 
 2. Get credentials from Dashboard → Settings → API Keys
 3. Add to `.env`: `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`
 4. Files are auto-organized in folders: `exam-platform/ncert/` and `exam-platform/pyp/`
+
+## Clerk Webhook Setup
+
+Webhooks let Clerk notify your API server when users sign up, update their profile, or are deleted. This creates/streak records and activity logs in your database automatically.
+
+### 1. Get the signing secret
+
+1. Go to [dashboard.clerk.com](https://dashboard.clerk.com) → select your app
+2. Navigate to **Configure → Webhooks**
+3. Click **"Add endpoint"**
+4. Enter your endpoint URL:
+   ```
+   https://your-api-server.com/api/webhooks/clerk
+   ```
+   For local development, use [ngrok](https://ngrok.com):
+   ```bash
+   npx ngrok http 4000
+   # Use the https URL: https://abc123.ngrok.io/api/webhooks/clerk
+   ```
+5. Under **"Listen to events"**, select:
+   - `user.created`
+   - `user.updated`
+   - `session.created`
+   - `user.deleted`
+6. Click **"Create"**
+7. Copy the **Signing Secret** (starts with `whsec_...`)
+
+### 2. Set the environment variable
+
+```bash
+# .env
+CLERK_WEBHOOK_SECRET=whsec_your_secret_here
+```
+
+### 3. Test it
+
+```bash
+# Terminal 1 — start API server
+pnpm -C src/api-server run dev
+
+# Terminal 2 — expose port 4000
+npx ngrok http 4000
+
+# Terminal 3 — create a test user in the app
+# Check API server logs for:
+# Webhook: user.created -> user_xxxxx (John Doe)
+```
+
+### How it works
+
+| Event | What happens |
+|-------|-------------|
+| `user.created` | Creates `user_streaks` row + `activity_logs` entry |
+| `user.updated` | Updates `display_name` in `user_streaks` |
+| `session.created` | Logs session in `activity_logs` |
+| `user.deleted` | Cleans up all 4 user-related tables |
+
+**Key behaviors:**
+- All handlers respond immediately (200) and process DB writes async — Clerk doesn't wait for your DB
+- Failed DB writes retry automatically (3 attempts, exponential backoff: 1s → 2s → 4s)
+- If all retries fail, errors are logged with the user ID for manual investigation
+- If `CLERK_WEBHOOK_SECRET` is not set, webhooks are silently skipped (safe for local dev)
+- StreakService also creates `user_streaks` on first activity as a fallback if the webhook fails
 
 ## Security
 

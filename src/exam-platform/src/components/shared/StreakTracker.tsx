@@ -5,7 +5,6 @@ import { useUser } from "@clerk/nextjs";
 import { useRecordActivity } from "@/lib/api";
 import { Flame, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useDeferredReady } from "@/hooks/useDeferredReady";
 
 const STORAGE_KEY = "mk_last_streak_date";
 const TOAST_DURATION = 5000;
@@ -55,10 +54,8 @@ export function StreakTracker() {
   const [toast, setToast] = useState<{ streak: number; pointsEarned: number } | null>(null);
   const fired = useRef(false);
 
-  const deferred = useDeferredReady();
-
   useEffect(() => {
-    if (!isLoaded || !user || !deferred || fired.current) return;
+    if (!isLoaded || !user || fired.current) return;
 
     const today = todayStr();
     const lastDate = localStorage.getItem(STORAGE_KEY);
@@ -77,7 +74,7 @@ export function StreakTracker() {
       .catch(() => {
         fired.current = false;
       });
-  }, [isLoaded, user, deferred]);
+  }, [isLoaded, user]);
 
   useEffect(() => {
     if (!toast) return;

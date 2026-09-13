@@ -1,7 +1,8 @@
 import { Router, type Request, type Response } from "express";
 import { eq } from "drizzle-orm";
 import { db } from "../lib/db";
-import { userStreaksTable, activityLogsTable } from "@workspace/db";
+import { userStreaksTable, activityLogsTable, studentAttemptsTable, supportTicketsTable } from "@workspace/db";
+import { withWebhookRetry } from "../lib/webhookRetry";
 
 const router = Router();
 
@@ -42,37 +43,46 @@ router.post(
             .trim() || "Learner";
           const email = (email_addresses as Array<{ email_address: string }> | undefined)?.[0]?.email_address ?? "";
 
-          // Create streak record for new user
-          const existing = await db
-            .select()
-            .from(userStreaksTable)
-            .where(eq(userStreaksTable.userId, clerkUserId));
+          // Respond immediately — process DB writes async so Clerk doesn't
+          // timeout waiting for our response (Clerk webhook timeout is ~10s).
+          res.json({ success: true });
 
-          if (existing.length === 0) {
-            await db.insert(userStreaksTable).values({
-              userId: clerkUserId,
-              displayName,
-              currentStreak: 1,
-              longestStreak: 1,
-              totalPoints: 0,
-              quizCount: 0,
-              mockCount: 0,
-              pyqCount: 0,
-              lastActivityDate: new Date().toISOString().split("T")[0],
-            });
-          }
+          // Fire-and-forget with retry: create streak record + log activity
+          withWebhookRetry(
+            async () => {
+              const existing = await db
+                .select()
+                .from(userStreaksTable)
+                .where(eq(userStreaksTable.userId, clerkUserId));
 
-          // Log signup activity
-          await db.insert(activityLogsTable).values({
-            userId: clerkUserId,
-            action: "user.created",
-            entityType: "user",
-            entityId: clerkUserId,
-            details: { email, displayName },
-          });
+              if (existing.length === 0) {
+                await db.insert(userStreaksTable).values({
+                  userId: clerkUserId,
+                  displayName,
+                  currentStreak: 1,
+                  longestStreak: 1,
+                  totalPoints: 0,
+                  quizCount: 0,
+                  mockCount: 0,
+                  pyqCount: 0,
+                  lastActivityDate: new Date().toISOString().split("T")[0],
+                });
+              }
 
-          console.log(`Webhook: user.created -> ${clerkUserId} (${displayName})`);
-          break;
+              await db.insert(activityLogsTable).values({
+                userId: clerkUserId,
+                action: "user.created",
+                entityType: "user",
+                entityId: clerkUserId,
+                details: { email, displayName },
+              });
+
+              console.log(`Webhook: user.created -> ${clerkUserId} (${displayName})`);
+            },
+            { label: `user.created:${clerkUserId}` },
+          );
+
+          return; // Already sent response above
         }
 
         case "user.updated": {
@@ -83,25 +93,67 @@ router.post(
             .join(" ")
             .trim() || "Learner";
 
-          await db
-            .update(userStreaksTable)
-            .set({ displayName, updatedAt: new Date() })
-            .where(eq(userStreaksTable.userId, clerkUserId));
+          // Respond immediately — process async
+          res.json({ success: true });
 
-          console.log(`Webhook: user.updated -> ${clerkUserId}`);
-          break;
+          withWebhookRetry(
+            async () => {
+              await db
+                .update(userStreaksTable)
+                .set({ displayName, updatedAt: new Date() })
+                .where(eq(userStreaksTable.userId, clerkUserId));
+              console.log(`Webhook: user.updated -> ${clerkUserId}`);
+            },
+            { label: `user.updated:${clerkUserId}` },
+          );
+
+          return;
         }
 
         case "session.created": {
           const { user_id } = data as ClerkData;
           const sessionUserId = user_id as string;
           if (sessionUserId) {
-            await db.insert(activityLogsTable).values({
-              userId: sessionUserId,
-              action: "session.created",
-              entityType: "session",
-              entityId: sessionUserId,
-            });
+            // Respond immediately — process async
+            res.json({ success: true });
+
+            withWebhookRetry(
+              async () => {
+                await db.insert(activityLogsTable).values({
+                  userId: sessionUserId,
+                  action: "session.created",
+                  entityType: "session",
+                  entityId: sessionUserId,
+                });
+              },
+              { label: `session.created:${sessionUserId}` },
+            );
+
+            return;
+          }
+          break;
+        }
+
+        case "user.deleted": {
+          const { id } = data as ClerkData;
+          const deletedUserId = id as string;
+          if (deletedUserId) {
+            // Respond immediately — clean up DB records async
+            res.json({ success: true });
+
+            withWebhookRetry(
+              async () => {
+                // Delete in FK order: support tickets cascade, then others
+                await db.delete(supportTicketsTable).where(eq(supportTicketsTable.userId, deletedUserId));
+                await db.delete(activityLogsTable).where(eq(activityLogsTable.userId, deletedUserId));
+                await db.delete(studentAttemptsTable).where(eq(studentAttemptsTable.userId, deletedUserId));
+                await db.delete(userStreaksTable).where(eq(userStreaksTable.userId, deletedUserId));
+                console.log(`Webhook: user.deleted -> ${deletedUserId} (DB cleanup done)`);
+              },
+              { label: `user.deleted:${deletedUserId}` },
+            );
+
+            return;
           }
           break;
         }

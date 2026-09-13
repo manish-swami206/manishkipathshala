@@ -1,9 +1,10 @@
 import type { Request, Response, NextFunction } from "express";
 import { db } from "../../db";
-import { studentAttemptsTable, userStreaksTable } from "@workspace/db";
+import { studentAttemptsTable, userStreaksTable, activityLogsTable, supportTicketsTable } from "@workspace/db";
 import { eq, desc, sql, and, inArray } from "drizzle-orm";
 import { routeParam } from "../../lib/routeParams";
 import { batchGetClerkUsers } from "../../lib/clerkBatch";
+import { clerkClient } from "@clerk/express";
 
 export async function listAllStudents(req: Request, res: Response, next: NextFunction) {
   try {
@@ -12,16 +13,40 @@ export async function listAllStudents(req: Request, res: Response, next: NextFun
     const limitNum = Math.min(100, parseInt(limit, 10));
     const offset = (pageNum - 1) * limitNum;
 
-    const searchCondition = search
+    // Search by displayName in DB
+    const nameCondition = search
       ? sql`lower(${userStreaksTable.displayName}) like ${`%${search.toLowerCase()}%`}`
       : undefined;
 
-    const whereClause = searchCondition ? and(searchCondition) : undefined;
+    // Also search by email via Clerk — get matching user IDs
+    let emailMatchedIds: string[] = [];
+    if (search) {
+      try {
+        const clerkResult = await clerkClient.users.getUserList({
+          emailAddress: [search],
+        });
+        emailMatchedIds = clerkResult.data.map((u) => u.id);
+      } catch {
+        // Ignore Clerk search errors — fall back to name-only search
+      }
+    }
+
+    // Combine name search with email search (OR)
+    const whereClause = nameCondition
+      ? emailMatchedIds.length > 0
+        ? sql`lower(${userStreaksTable.displayName}) like ${`%${search.toLowerCase()}%`} OR ${userStreaksTable.userId} IN ${emailMatchedIds}`
+        : and(nameCondition)
+      : emailMatchedIds.length > 0
+        ? sql`${userStreaksTable.userId} IN ${emailMatchedIds}`
+        : undefined;
 
     const [countRow] = await db
       .select({ count: sql<number>`count(*)` })
       .from(userStreaksTable)
       .where(whereClause);
+
+    // When searching by email, also include any Clerk-matched IDs not in userStreaks
+    // (edge case: user exists in Clerk but webhook hasn't created streaks row yet)
 
     // Step 1: Fetch paginated users from userStreaksTable (simple query — no join issues)
     const users = await db
@@ -106,6 +131,46 @@ export async function getStudentAttempts(req: Request, res: Response, next: Next
     res.json(
       attempts.map((a) => ({ ...a, attemptedAt: a.attemptedAt.toISOString() })),
     );
+  } catch (err) {
+    return next(err);
+  }
+}
+
+/**
+ * DELETE /admin/students/:userId
+ * Removes a user from both Clerk and all related database tables.
+ * Order: DB first ( FK constraints ), then Clerk last.
+ */
+export async function deleteStudent(req: Request, res: Response, next: NextFunction) {
+  try {
+    const userId = routeParam(req.params.userId);
+
+    if (!userId) {
+      return res.status(400).json({ error: "Missing userId parameter" });
+    }
+
+    // 1. Delete from all user-related DB tables
+    //    Order matters: supportTickets cascade deletes messages, so delete tickets first
+    await db.delete(supportTicketsTable).where(eq(supportTicketsTable.userId, userId));
+    await db.delete(activityLogsTable).where(eq(activityLogsTable.userId, userId));
+    await db.delete(studentAttemptsTable).where(eq(studentAttemptsTable.userId, userId));
+    await db.delete(userStreaksTable).where(eq(userStreaksTable.userId, userId));
+
+    // 2. Delete from Clerk
+    try {
+      await clerkClient.users.deleteUser(userId);
+    } catch (clerkErr: any) {
+      // If user doesn't exist in Clerk (already deleted), continue
+      if (clerkErr?.status === 404) {
+        console.warn(`User ${userId} not found in Clerk — may have been deleted already`);
+      } else {
+        throw clerkErr;
+      }
+    }
+
+    console.log(`Admin: Deleted user ${userId} from DB and Clerk`);
+
+    res.json({ success: true, message: `User ${userId} deleted successfully` });
   } catch (err) {
     return next(err);
   }

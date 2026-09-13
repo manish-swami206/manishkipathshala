@@ -76,6 +76,12 @@ Default section order:
 
 ## User Preferences
 
+- **Auth performance**: No API calls should block the auth redirect. All non-critical API calls (streaks, notifications, unread counts) must fire after the user is redirected and the page is mounted.
+- **Signup UX**: Show an interactive stepper during signup loading states, not a generic spinner.
+- **Query caching**: All `useQuery` calls should have `staleTime: 15 * 60 * 1000` (15 min) to prevent refetch on back-button navigation.
+- **Webhook reliability**: Webhook handlers must respond immediately and process DB writes async with retry logic.
+- **Admin-only features**: Support unread count is admin-only — never call it in the regular user Header.
+
 When the user requests a durable behavior change, record it here or in the relevant child AGENTS.md
 
 ## Child DOX Index
@@ -94,6 +100,8 @@ When the user requests a durable behavior change, record it here or in the relev
 - **Key files**: src/app.ts (Express setup), src/index.ts (entry point), src/routes/index.ts (router), src/config/env.ts (env schema)
 - **Type safety**: All controllers use typed table references (no `any` casts). QuestionRefEntry/SubjectRefEntry patterns for dynamic column access.
 - **Streaks/points contract**: All streak and point logic lives in src/services/streakMath.ts (pure, unit-tested) + streakService.ts (DB application). Rewards are recorded server-side inside POST /attempts only; POST /streaks/activity accepts "login" exclusively. Leaderboard period boards aggregate verified attempts.
+- **Webhook contract**: `POST /api/webhooks/clerk` handles `user.created`, `user.updated`, `session.created`, `user.deleted`. All handlers respond immediately (200) and process DB writes async with `withWebhookRetry` (3 attempts, exponential backoff). `user.deleted` cleans up all 4 user-related tables in FK order. Requires `CLERK_WEBHOOK_SECRET` env var.
+- **User delete**: `DELETE /admin/students/:userId` removes from DB (supportTickets → activityLogs → studentAttempts → userStreaks) then Clerk. Handles 404 from Clerk gracefully.
 - **Verification**: `pnpm test` (vitest) — pure-helper suites in src/__tests__/services must pass with no DATABASE_URL; admin/routes suites have pre-existing failures (see issue.md).
 - **Child AGENTS.md**: Not created yet — all API concerns managed from root
 
@@ -103,6 +111,11 @@ When the user requests a durable behavior change, record it here or in the relev
 - **Key files**: src/app/layout.tsx (root layout), src/app/providers.tsx (providers), src/lib/api/index.ts (API hooks), src/lib/types/api.ts (types)
 - **Middleware**: `proxy.ts` (NOT `middleware.ts`) — Next.js 16 uses `proxy.ts` for middleware. Contains `clerkMiddleware` with route matchers. The matcher skips `/api/` routes entirely.
 - **Auth layout**: `(app)` and `(admin)` route groups each wrap children in `Providers` (React Query, RequireAuth, Toaster). The root layout only provides `ClerkProvider`. Auth pages (`/sign-in`, `/sign-up`) load a lightweight tree with no React Query/Radix overhead.
+- **Auth flow**: After signup redirect, `AuthLoadingGate` shows stepper if auth takes >500ms. Once `isLoaded`, `AppLayout` renders immediately. StreakTracker, NotificationPanel fire on mount (no idle gating). Support unread count is admin-only — not called in regular Header.
+- **Signup stepper**: `SignupStepper.tsx` shows 3-step progress (Creating account → Setting up profile → Preparing dashboard). Used in sign-up page (while Clerk SDK loads) and `AuthLoadingGate` (post-redirect auth resolution).
+- **Query caching**: All `useQuery` calls use `staleTime: 15 * 60 * 1000` (15 min). Views that bypass centralized hooks (NcertBooks, PypPage, etc.) also have explicit staleTime. This prevents refetch on back-button navigation.
+- **Token caching**: `clerk-token-cache.ts` deduplicates `getToken()` calls across components (4-min TTL). Used by `useTokenizedQuery`/`useTokenizedMutation` in `lib/api/index.ts`.
+- **Deferred loading**: `useDeferredReady` hook returns true after browser idle (requestIdleCallback with 1s timeout fallback). Used for non-critical data that can wait for page paint.
 - **Routing pattern**: Features with a player use `/[feature]/[id]/play` for the player route (e.g., daily-quiz, mock-tests). The detail/instructions page is at `/[feature]/[id]` and the listing at `/[feature]`.
 - **SEO**: `lib/seo.ts` exports `buildMetadata()` factory and per-page metadata objects. Homepage uses `export const metadata = homeMetadata`. `sitemap.ts` generates static sitemap. OG image: `public/opengraph.jpg`.
 - **File upload contract**: All multipart uploads (FormData) MUST go through `adminFetch`/`apiFetch` (direct to `NEXT_PUBLIC_API_URL`). Never raw-fetch relative `/api/...` paths — those proxy through the Next.js rewrite, and the Vercel function body cap (~4.5MB) rejects large PDFs before Express sees them. `apiFetch` already skips Content-Type for FormData so the browser sets the multipart boundary. Requires frontend origin in api-server `ALLOWED_ORIGINS` (CORS).

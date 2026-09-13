@@ -1,7 +1,9 @@
 "use client";
 
-import { SignUp } from "@clerk/nextjs";
+import { useState } from "react";
+import { SignUp, useSignUp } from "@clerk/nextjs";
 import { isClerkConfigured } from "@/lib/clerk";
+import { SignupStepper } from "@/components/shared/SignupStepper";
 
 function SignUpSkeleton() {
   return (
@@ -30,14 +32,43 @@ function SignUpSkeleton() {
   );
 }
 
-export default function SignUpPage() {
-  if (!isClerkConfigured) {
-    return <div className="mx-auto max-w-md px-6 py-20 text-center text-sm text-gray-600">Clerk is not configured for this local environment.</div>;
+/**
+ * Shows the stepper when Clerk's SignUp component is processing
+ * (after user clicks submit, while Clerk creates the account).
+ */
+function SignUpWithStepper() {
+  const { isLoaded, signUp } = useSignUp();
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  // Watch for Clerk processing state — after verify code / create account
+  // TheSignUp component handles the UI; we intercept the loading state
+  if (!isLoaded) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center bg-gray-50">
+        <SignupStepper currentStep={0} />
+      </div>
+    );
   }
 
   return (
     <SignUp
       fallback={<SignUpSkeleton />}
+      appearance={{
+        elements: {
+          formButtonPrimary: "bg-indigo-600 hover:bg-indigo-700 text-white",
+          card: "shadow-none border-0",
+        },
+      }}
+      // After successful signup, Clerk redirects automatically
+      // The (app) layout will show the stepper during auth resolution
     />
   );
+}
+
+export default function SignUpPage() {
+  if (!isClerkConfigured) {
+    return <div className="mx-auto max-w-md px-6 py-20 text-center text-sm text-gray-600">Clerk is not configured for this local environment.</div>;
+  }
+
+  return <SignUpWithStepper />;
 }

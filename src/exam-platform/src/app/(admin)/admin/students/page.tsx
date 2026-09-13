@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Users, ChevronLeft, ChevronRight, TrendingUp, HelpCircle, Calendar, CheckCircle2, Clock, Search } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Users, ChevronLeft, ChevronRight, TrendingUp, HelpCircle, Calendar, CheckCircle2, Clock, Search, Trash2, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,17 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { useAdminFetch } from "@/hooks/useAdminFetch";
+import { useAuth } from "@clerk/nextjs";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface StudentStat {
   userId: string;
@@ -36,11 +47,16 @@ interface StudentAttempt {
 
 export default function StudentsPage() {
   const adminFetch = useAdminFetch();
+  const queryClient = useQueryClient();
+  const { getToken } = useAuth();
   const [page, setPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ userId: string; name: string } | null>(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin", "students", page, debouncedSearch],
@@ -85,7 +101,7 @@ export default function StudentsPage() {
                 setPage(1);
               }, 400);
             }}
-            placeholder="Search by name..."
+            placeholder="Search by name or email..."
             className="pl-9 h-9 rounded-xl text-sm"
           />
         </div>
@@ -116,30 +132,36 @@ export default function StudentsPage() {
             </Card>
           ) : (
             <Card className="border-0 shadow-sm overflow-hidden rounded-2xl">
-              <div className="overflow-x-auto scrollbar-thin">
-                <table className="w-full text-sm">
+              <div className="overflow-x-auto scrollbar-thin -mx-px">
+                <table className="w-full text-sm min-w-[800px]">
                   <thead>
                     <tr className="bg-gray-50 text-left">
-                      <th className="px-4 lg:px-6 py-3 font-semibold text-gray-600 text-xs">
+                      <th className="px-4 py-3 font-semibold text-gray-600 text-xs whitespace-nowrap">
                         Student
                       </th>
-                      <th className="px-4 lg:px-6 py-3 font-semibold text-gray-600 text-xs">
+                      <th className="px-4 py-3 font-semibold text-gray-600 text-xs whitespace-nowrap">
+                        Email
+                      </th>
+                      <th className="px-4 py-3 font-semibold text-gray-600 text-xs whitespace-nowrap">
                         Attempts
                       </th>
-                      <th className="hidden sm:table-cell px-4 lg:px-6 py-3 font-semibold text-gray-600 text-xs">
+                      <th className="px-4 py-3 font-semibold text-gray-600 text-xs whitespace-nowrap">
                         Avg Score
                       </th>
-                      <th className="hidden sm:table-cell px-4 lg:px-6 py-3 font-semibold text-gray-600 text-xs">
+                      <th className="px-4 py-3 font-semibold text-gray-600 text-xs whitespace-nowrap">
                         Total
                       </th>
-                      <th className="hidden md:table-cell px-4 lg:px-6 py-3 font-semibold text-gray-600 text-xs">
+                      <th className="px-4 py-3 font-semibold text-gray-600 text-xs whitespace-nowrap">
                         Passed
                       </th>
-                      <th className="hidden md:table-cell px-4 lg:px-6 py-3 font-semibold text-gray-600 text-xs">
+                      <th className="px-4 py-3 font-semibold text-gray-600 text-xs whitespace-nowrap">
                         Joined
                       </th>
-                      <th className="hidden lg:table-cell px-4 lg:px-6 py-3 font-semibold text-gray-600 text-xs">
+                      <th className="px-4 py-3 font-semibold text-gray-600 text-xs whitespace-nowrap">
                         Last Active
+                      </th>
+                      <th className="px-4 py-3 font-semibold text-gray-600 text-xs whitespace-nowrap">
+                        Actions
                       </th>
                     </tr>
                   </thead>
@@ -150,34 +172,34 @@ export default function StudentsPage() {
                         onClick={() => setSelectedUserId(s.userId)}
                         className="hover:bg-gray-50/50 transition-colors cursor-pointer"
                       >
-                        <td className="px-4 lg:px-6 py-3.5">
+                        <td className="px-4 py-3.5">
                           <div className="flex items-center gap-3">
                             <div className="h-8 w-8 rounded-full bg-violet-100 flex items-center justify-center text-violet-700 font-bold text-xs flex-shrink-0">
                               {(s.displayName || s.userId).slice(0, 1).toUpperCase()}
                             </div>
                             <div className="min-w-0">
-                              <p className="text-sm font-semibold text-gray-900 truncate max-w-[120px] lg:max-w-[150px]">
+                              <p className="text-sm font-semibold text-gray-900 truncate max-w-[120px]">
                                 {s.displayName || "Learner"}
-                              </p>
-                              <p className="text-[10px] font-mono text-gray-400 truncate max-w-[120px] lg:max-w-[150px]">
-                                {s.email || s.userId}
                               </p>
                             </div>
                           </div>
                         </td>
-                        <td className="px-4 lg:px-6 py-3.5 font-medium text-gray-900 text-sm">
+                        <td className="px-4 py-3.5 text-gray-500 text-xs max-w-[180px] truncate">
+                          {s.email || "—"}
+                        </td>
+                        <td className="px-4 py-3.5 font-medium text-gray-900 text-sm">
                           {s.totalAttempts}
                         </td>
-                        <td className="hidden sm:table-cell px-4 lg:px-6 py-3.5">
+                        <td className="px-4 py-3.5">
                           <div className="flex items-center gap-1">
                             <TrendingUp className="h-3.5 w-3.5 text-green-500" />
                             <span className="text-sm">{s.avgScore}</span>
                           </div>
                         </td>
-                        <td className="hidden sm:table-cell px-4 lg:px-6 py-3.5 font-bold text-violet-600 text-sm">
+                        <td className="px-4 py-3.5 font-bold text-violet-600 text-sm">
                           {s.totalScore}
                         </td>
-                        <td className="hidden md:table-cell px-4 lg:px-6 py-3.5">
+                        <td className="px-4 py-3.5">
                           <Badge
                             variant="outline"
                             className="bg-green-50 text-green-700 border-green-200 text-xs"
@@ -185,13 +207,26 @@ export default function StudentsPage() {
                             {s.passedCount}
                           </Badge>
                         </td>
-                        <td className="hidden md:table-cell px-4 lg:px-6 py-3.5 text-gray-400 text-xs">
+                        <td className="px-4 py-3.5 text-gray-400 text-xs whitespace-nowrap">
                           {new Date(s.joinedAt).toLocaleDateString()}
                         </td>
-                        <td className="hidden lg:table-cell px-4 lg:px-6 py-3.5 text-gray-400 text-xs">
+                        <td className="px-4 py-3.5 text-gray-400 text-xs whitespace-nowrap">
                           {s.lastAttemptAt
                             ? new Date(s.lastAttemptAt).toLocaleDateString()
                             : "—"}
+                        </td>
+                        <td className="px-4 lg:px-6 py-3.5">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 text-gray-400 hover:text-red-600 hover:bg-red-50"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeleteTarget({ userId: s.userId, name: s.displayName || "Learner" });
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </td>
                       </tr>
                     ))}
@@ -297,6 +332,92 @@ export default function StudentsPage() {
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteTarget(null);
+            setDeleteConfirmText("");
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Student</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete <strong>{deleteTarget?.name}</strong>? This will permanently remove:
+              <ul className="list-disc list-inside mt-2 text-sm">
+                <li>Their Clerk account</li>
+                <li>All quiz/exam attempts</li>
+                <li>Streak and points data</li>
+                <li>Activity logs</li>
+                <li>Support tickets</li>
+              </ul>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="space-y-2">
+            <p className="text-sm text-gray-600">
+              Type <strong className="text-red-600">{deleteTarget?.name}</strong> to confirm deletion:
+            </p>
+            <Input
+              value={deleteConfirmText}
+              onChange={(e) => setDeleteConfirmText(e.target.value)}
+              placeholder={deleteTarget?.name}
+              className="border-red-200 focus-visible:ring-red-500"
+              disabled={isDeleting}
+              autoFocus
+            />
+          </div>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isDeleting || deleteConfirmText !== deleteTarget?.name}
+              className="bg-red-600 hover:bg-red-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={async () => {
+                if (!deleteTarget) return;
+                setIsDeleting(true);
+                try {
+                  const token = await getToken();
+                  const res = await fetch(
+                    `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000"}/api/admin/students/${deleteTarget.userId}`,
+                    {
+                      method: "DELETE",
+                      headers: {
+                        Authorization: `Bearer ${token}`,
+                      },
+                    }
+                  );
+                  if (!res.ok) {
+                    const body = await res.json().catch(() => ({}));
+                    throw new Error(body.error || "Failed to delete student");
+                  }
+                  await queryClient.invalidateQueries({ queryKey: ["admin", "students"] });
+                  setDeleteTarget(null);
+                  setDeleteConfirmText("");
+                } catch (err) {
+                  console.error("Delete failed:", err);
+                  alert(err instanceof Error ? err.message : "Failed to delete student");
+                } finally {
+                  setIsDeleting(false);
+                }
+              }}
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete Permanently"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

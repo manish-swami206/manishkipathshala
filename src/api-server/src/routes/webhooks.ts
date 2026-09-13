@@ -8,10 +8,11 @@ import { withWebhookRetry } from "../lib/webhookRetry";
 const router = Router();
 
 // POST /webhooks/clerk — Clerk webhook endpoint
-// NOTE: This router is mounted in app.ts BEFORE the global express.json() parser,
-// using express.raw({ type: "application/json" }) for raw body access.
+// NOTE: This router is mounted in app.ts at "/api/webhooks/clerk" BEFORE the
+// global express.json() parser. Express strips the mount path, so the route
+// here must be "/" — the full public URL is POST /api/webhooks/clerk.
 router.post(
-  "/webhooks/clerk",
+  "/",
   async (req: Request, res: Response) => {
     try {
       // Verify webhook signature using Clerk's official helper

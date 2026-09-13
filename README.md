@@ -106,7 +106,7 @@ pnpm -C src/exam-platform run dev
 | `NODE_ENV`                          | —        | `development`           | Environment mode               |
 | `ALLOWED_ORIGINS`                   | —        | —                       | CORS origins (comma-separated) |
 | `NEXT_PUBLIC_API_URL`               | —        | `http://localhost:4000` | API base URL for frontend      |
-| `CLERK_WEBHOOK_SECRET`              | —        | —                       | Clerk webhook signing secret   |
+| `CLERK_WEBHOOK_SIGNING_SECRET`      | —        | —                       | Clerk webhook signing secret   |
 
 ## Features
 
@@ -326,7 +326,7 @@ Webhooks let Clerk notify your API server when users sign up, update their profi
 
 ```bash
 # .env
-CLERK_WEBHOOK_SECRET=whsec_your_secret_here
+CLERK_WEBHOOK_SIGNING_SECRET=whsec_your_secret_here
 ```
 
 ### 3. Test it

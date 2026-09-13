@@ -1,5 +1,6 @@
 import { Router, type Request, type Response } from "express";
 import { eq } from "drizzle-orm";
+import { verifyWebhook } from "@clerk/express/webhooks";
 import { db } from "../lib/db";
 import { userStreaksTable, activityLogsTable, studentAttemptsTable, supportTicketsTable } from "@workspace/db";
 import { withWebhookRetry } from "../lib/webhookRetry";
@@ -13,25 +14,20 @@ router.post(
   "/webhooks/clerk",
   async (req: Request, res: Response) => {
     try {
-      const secret = process.env.CLERK_WEBHOOK_SECRET;
-      if (!secret) {
-        console.warn("CLERK_WEBHOOK_SECRET not set — skipping webhook");
-        return res.status(200).json({ skipped: true });
+      // Verify webhook signature using Clerk's official helper
+      // Requires CLERK_WEBHOOK_SIGNING_SECRET env var (the signing secret from Clerk dashboard)
+      let evt: { type: string; data: Record<string, unknown> };
+      try {
+        evt = (await verifyWebhook(req)) as unknown as { type: string; data: Record<string, unknown> };
+      } catch (err) {
+        console.error("Webhook signature verification failed:", err);
+        return res.status(401).json({ error: "Invalid signature" });
       }
 
-      // Verify webhook secret via header
-      const headerSecret = req.headers["x-webhook-secret"] as string;
-      if (headerSecret !== secret) {
-        return res.status(401).json({ error: "Invalid webhook secret" });
-      }
+      const eventType = evt.type;
+      const data = evt.data;
 
-      const payload = req.body as {
-        type: string;
-        data: Record<string, unknown>;
-      };
       type ClerkData = { [key: string]: unknown };
-      const eventType = payload.type;
-      const data = payload.data;
 
       switch (eventType) {
         case "user.created": {

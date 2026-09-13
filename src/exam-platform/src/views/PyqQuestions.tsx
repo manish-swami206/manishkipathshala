@@ -45,6 +45,7 @@ export default function PyqQuestions() {
       return apiFetch<PyqQuestionsResponse>(`/pyq/questions?${qp.toString()}`);
     },
     enabled: !!subjectSlug,
+    staleTime: 15 * 60 * 1000,
   });
 
   // Map to global player format — MUST be before any early returns (Rules of Hooks)

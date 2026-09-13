@@ -66,6 +66,7 @@ export default function NcertMcqPlayer() {
     queryKey: ["exam-set", setId],
     queryFn: () => apiFetch<ExamSetDetail>(`/exam-sets/${setId}`),
     enabled: !!setId && authChecked,
+    staleTime: 15 * 60 * 1000,
   });
 
   // Batch fetch questions once we have questionIds
@@ -83,6 +84,7 @@ export default function NcertMcqPlayer() {
       },
       enabled:
         !!setData && (setData.questionIds?.length ?? 0) > 0 && authChecked,
+      staleTime: 15 * 60 * 1000,
     });
 
   // Map to global player format — MUST be before any early returns (Rules of Hooks)

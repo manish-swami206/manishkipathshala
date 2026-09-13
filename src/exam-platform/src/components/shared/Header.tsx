@@ -29,6 +29,7 @@ import NotificationsPanel from "./NotificationPanel";
 import AuthButton from "./AuthButton";
 import { Headphones } from "lucide-react";
 import { useSupportUnreadCount } from "@/lib/api";
+import { useDeferredReady } from "@/hooks/useDeferredReady";
 
 export default function Header() {
   const [open, setOpen] = useState(false);
@@ -57,8 +58,9 @@ export default function Header() {
   // Flat list of all nav items for stagger indexing
   // const allNavItems = NAV_GROUPS.flatMap((g) => g.items);
 
+  const deferred = useDeferredReady();
   const { data: unreadData } = useSupportUnreadCount({
-    query: { enabled: !!isSignedIn, refetchInterval: 30_000 },
+    query: { enabled: !!isSignedIn && deferred, refetchInterval: 30_000 },
   });
   const supportUnread = unreadData?.unreadCount ?? 0;
 

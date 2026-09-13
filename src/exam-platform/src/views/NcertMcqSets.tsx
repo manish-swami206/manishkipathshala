@@ -47,6 +47,7 @@ export default function NcertMcqSets() {
       if (medium !== "all") params.set("medium", medium);
       return apiFetch<ExamSetsResponse>(`/exam-sets?${params.toString()}`);
     },
+    staleTime: 15 * 60 * 1000,
   });
 
   const sets = data?.data ?? [];

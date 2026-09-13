@@ -66,6 +66,7 @@ export default function NcertMcq() {
       if (medium !== "all") params.set("medium", medium);
       return apiFetch<McqResponse>(`/ncert-mcq/questions?${params.toString()}`);
     },
+    staleTime: 15 * 60 * 1000,
   });
 
   const questions = data?.data ?? [];

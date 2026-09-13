@@ -75,6 +75,7 @@ export default function PypPage() {
         totalPages: number;
       }>(`/pyp${query ? `?${query}` : ""}`);
     },
+    staleTime: 15 * 60 * 1000,
   });
 
   const papers = data?.data ?? [];

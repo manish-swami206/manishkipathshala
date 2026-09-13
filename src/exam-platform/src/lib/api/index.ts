@@ -1,5 +1,6 @@
 import { useAuth } from "@clerk/nextjs";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { getCachedToken } from "@/lib/clerk-token-cache";
 import type { UseQueryOptions, UseMutationOptions } from "@tanstack/react-query";
 import type {
   Announcement,
@@ -116,7 +117,7 @@ function useTokenizedQuery<TData>(
 
   return useQuery({
     queryKey: (overrideQueryKey as readonly unknown[]) ?? queryKey,
-    queryFn: async () => fetcher((await getToken()) ?? undefined),
+    queryFn: async () => fetcher((await getCachedToken(getToken)) ?? undefined),
     enabled: (overrideEnabled as boolean | undefined) ?? true,
     ...restOptions,
   } as UseQueryOptions<TData, Error>);
@@ -132,7 +133,7 @@ function useTokenizedMutation<TVariables, TData>(
 
   return useMutation({
     mutationFn: async (variables: TVariables) =>
-      mutationFn(variables, (await getToken()) ?? undefined),
+      mutationFn(variables, (await getCachedToken(getToken)) ?? undefined),
     ...(onSuccess ? { onSuccess } : {}),
     ...(onError ? { onError } : {}),
   } as UseMutationOptions<TData, Error, TVariables>);

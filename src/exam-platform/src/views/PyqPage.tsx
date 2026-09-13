@@ -61,6 +61,7 @@ export default function PyqPage() {
       if (mediumFilter !== "all") params.set("medium", mediumFilter);
       return apiFetch<ExamSetsResponse>(`/exam-sets?${params.toString()}`);
     },
+    staleTime: 15 * 60 * 1000,
   });
 
   const sets = data?.data ?? [];

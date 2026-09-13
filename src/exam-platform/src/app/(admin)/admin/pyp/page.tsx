@@ -132,6 +132,7 @@ export default function PypAdminPage() {
         `/api/admin/pyp?${sp.toString()}`,
       );
     },
+    staleTime: 15 * 60 * 1000,
   });
   const papers = pypResponse?.data ?? [];
   const totalPages = pypResponse?.pagination?.totalPages ?? 1;

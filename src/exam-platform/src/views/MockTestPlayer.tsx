@@ -58,6 +58,7 @@ export default function MockTestPlayer() {
     query: {
       enabled: !!id && authChecked,
       queryKey: getGetMockTestQueryKey(id),
+      staleTime: 15 * 60 * 1000,
     },
   });
 
@@ -76,6 +77,7 @@ export default function MockTestPlayer() {
       },
       enabled:
         !!mockTest && (mockTest.questionIds?.length ?? 0) > 0 && authChecked,
+      staleTime: 15 * 60 * 1000,
     });
 
   // Map to global player format — MUST be before any early returns (Rules of Hooks)

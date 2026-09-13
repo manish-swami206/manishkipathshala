@@ -54,14 +54,14 @@ export default function StudentsPage() {
           limit: number;
         };
       }>(`/api/admin/students?page=${page}&limit=20&search=${encodeURIComponent(debouncedSearch)}`),
-    staleTime: 60 * 1000,
+    staleTime: 15 * 60 * 1000,
   });
 
   const { data: attempts = [], isLoading: loadingAttempts } = useQuery({
     queryKey: ["admin", "students", "attempts", selectedUserId],
     queryFn: () => adminFetch<StudentAttempt[]>(`/api/admin/students/${selectedUserId}/attempts`),
     enabled: !!selectedUserId,
-    staleTime: 30 * 1000,
+    staleTime: 15 * 60 * 1000,
   });
   return (
     <div className="p-6 md:p-8 space-y-6">

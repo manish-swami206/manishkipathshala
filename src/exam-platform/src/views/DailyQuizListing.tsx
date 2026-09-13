@@ -29,6 +29,7 @@ export default function QuizListing() {
   const { data: quizzes, isLoading } = useQuery({
     queryKey: queryKeys.quizzes.list({ status: activeTab }),
     queryFn: () => quizzesApi.list({ status: activeTab }),
+    staleTime: 15 * 60 * 1000,
   });
 
   const prefetchQuiz = (id: string) => {

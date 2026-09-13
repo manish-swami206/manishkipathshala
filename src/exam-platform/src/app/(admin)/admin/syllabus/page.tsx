@@ -172,6 +172,7 @@ export default function SyllabusAdminPage() {
         pagination: { page: number; limit: number; total: number; totalPages: number };
       }>(`/api/admin/syllabus?${sp.toString()}`);
     },
+    staleTime: 15 * 60 * 1000,
   });
   const list = syllabusResponse?.data ?? [];
   const totalPages = syllabusResponse?.pagination?.totalPages ?? 1;

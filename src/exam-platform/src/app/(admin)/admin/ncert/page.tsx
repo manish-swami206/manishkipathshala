@@ -171,6 +171,7 @@ export default function NcertAdminPage() {
     queryKey: ["admin", "ncert-books", page],
     queryFn: () =>
       adminFetch<{ data: NcertBook[]; pagination: { page: number; limit: number; total: number; totalPages: number } }>(`/api/admin/ncert-books?page=${page}&limit=20`),
+    staleTime: 15 * 60 * 1000,
   });
   const books = response?.data ?? [];
   const totalPages = response?.pagination?.totalPages ?? 1;

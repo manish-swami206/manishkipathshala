@@ -13,12 +13,14 @@ import {
 import { cn } from "@/lib/utils";
 import { useListAnnouncements, getListAnnouncementsQueryKey } from "@/lib/api";
 import { NOTIF_COLOR, NOTIF_ICON, useClientMounted } from "../layout/AppLayout";
+import { useDeferredReady } from "@/hooks/useDeferredReady";
 
 export default function NotificationsPanel() {
   const [open, setOpen] = useState(false);
   const mounted = useClientMounted();
+  const deferred = useDeferredReady();
   const { data: announcements } = useListAnnouncements({
-    query: { enabled: mounted, queryKey: getListAnnouncementsQueryKey() },
+    query: { enabled: mounted && deferred, queryKey: getListAnnouncementsQueryKey() },
   });
   const count = mounted ? (announcements?.length ?? 0) : 0;
 

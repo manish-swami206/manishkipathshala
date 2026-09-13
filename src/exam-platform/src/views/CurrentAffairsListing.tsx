@@ -48,7 +48,7 @@ export default function CurrentAffairsListing() {
   const { data, isLoading } = useQuery({
     queryKey: queryKeys.currentAffairs.list({ page, limit: 12 }),
     queryFn: () => currentAffairsApi.list({ page, limit: 12 }),
-    staleTime: 60 * 1000,
+    staleTime: 15 * 60 * 1000,
   });
   return (
     <PageTransition className="p-4 md:p-8 max-w-6xl mx-auto space-y-6">

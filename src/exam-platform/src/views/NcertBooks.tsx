@@ -63,6 +63,7 @@ export default function NcertBooks() {
         totalPages: number;
       }>(`/ncert-books?${params.toString()}`);
     },
+    staleTime: 15 * 60 * 1000,
   });
 
   const books = data?.data ?? [];

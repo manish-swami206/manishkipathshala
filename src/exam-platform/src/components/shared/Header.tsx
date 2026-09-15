@@ -28,6 +28,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import NotificationsPanel from "./NotificationPanel";
 import AuthButton from "./AuthButton";
 import { Headphones } from "lucide-react";
+import Image from "next/image";
 
 export default function Header() {
   const [open, setOpen] = useState(false);
@@ -116,13 +117,19 @@ export default function Header() {
             <motion.div
               whileHover={{ scale: 1.1, rotate: [0, -6, 6, 0] }}
               transition={{ duration: 0.4 }}
-              className="w-9 h-9 rounded-xl bg-linear-to-br from-primary to-violet-600 flex items-center justify-center shadow text-white font-bold text-sm cursor-pointer"
+              className="relative w-9 h-9 shrink-0 cursor-pointer"
             >
-              MK
+              <Image
+                src="/logo.png"
+                alt="Manish Ki Pathshala"
+                fill
+                className="object-contain"
+              />
             </motion.div>
             <div>
               <span className="font-bold text-[16px] block leading-none">
-                Manish Ki Pathshala
+                Manish Ki{" "}
+                <span className="text-primary">Pathshala</span>
               </span>
               <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
                 Education Redefined
@@ -254,9 +261,15 @@ export default function Header() {
           whileHover={{ scale: 1.08, rotate: [0, -6, 6, -3, 0] }}
           whileTap={{ scale: 0.94 }}
           transition={{ duration: 0.45 }}
-          className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary to-violet-600 flex items-center justify-center text-white font-bold text-xs shadow cursor-pointer"
+          className="relative w-8 h-8 shrink-0 cursor-pointer"
         >
-          MK
+          <Image
+            src="/logo.png"
+            alt="Manish Ki Pathshala"
+            fill
+            className="object-contain"
+            priority
+          />
         </motion.div>
         <motion.div
           initial={{ opacity: 0, x: -8 }}
@@ -265,7 +278,8 @@ export default function Header() {
           className="leading-none min-w-0"
         >
           <p className="font-extrabold text-xs text-foreground tracking-tight truncate">
-            Manish Ki Pathshala
+            Manish Ki{" "}
+            <span className="text-primary">Pathshala</span>
           </p>
           <p className="text-[9px] text-muted-foreground font-semibold uppercase tracking-wider">
             Education Redefined

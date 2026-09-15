@@ -14,6 +14,7 @@ const clerkAppearance = {
   cssLayerName: "clerk",
   options: {
     logoPlacement: "inside" as const,
+    logoUrl: "/logo.png",
     logoLinkUrl: "/",
     socialButtonsPlacement: "top" as const,
     socialButtonsVariant: "blockButton" as const,

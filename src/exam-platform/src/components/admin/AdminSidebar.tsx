@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useUI } from "@/components/providers/UIProvider";
 import { useEffect } from "react";
+import Image from "next/image";
 import {
   LayoutDashboard,
   HelpCircle,
@@ -80,18 +81,31 @@ export function AdminSidebar() {
       <div className="flex items-center justify-between px-4 h-16 border-b border-gray-200 flex-shrink-0">
         {!collapsed && (
           <div className="flex items-center gap-2 min-w-0">
-            <div className="w-8 h-8 rounded-lg bg-violet-600 flex items-center justify-center text-white font-extrabold text-xs shrink-0 shadow-sm shadow-violet-200">
-              MK
+            <div className="relative w-8 h-8 shrink-0">
+              <Image
+                src="/logo.png"
+                alt="Manish Ki Pathshala"
+                fill
+                className="object-contain"
+              />
             </div>
             <div className="min-w-0 flex-1 leading-tight">
-              <span className="font-extrabold text-xs block text-gray-900 truncate">Manish Pathshala</span>
+              <span className="font-extrabold text-xs block text-gray-900 truncate">
+                Manish Ki{" "}
+                <span className="text-primary">Pathshala</span>
+              </span>
               <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider block">Admin Panel</span>
             </div>
           </div>
         )}
         {collapsed && (
-          <div className="w-8 h-8 rounded-lg bg-violet-600 flex items-center justify-center text-white font-extrabold text-xs shrink-0 mx-auto">
-            MK
+          <div className="relative w-8 h-8 shrink-0 mx-auto">
+            <Image
+              src="/logo.png"
+              alt="Manish Ki Pathshala"
+              fill
+              className="object-contain"
+            />
           </div>
         )}
         {/* Desktop toggle button */}

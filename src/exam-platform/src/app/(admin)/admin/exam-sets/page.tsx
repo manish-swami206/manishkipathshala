@@ -121,6 +121,7 @@ export default function ExamSetsAdminPage() {
         `/api/admin/exam-sets${query ? `?${query}` : ""}`,
       );
     },
+    staleTime: 15 * 60 * 1000,
   });
 
   // Reset to page 1 if current page exceeds total pages
@@ -442,7 +443,7 @@ export default function ExamSetsAdminPage() {
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
         <SheetContent
           side="right"
-          className="w-full sm:max-w-md overflow-y-auto scrollbar-thin"
+          className="w-full sm:max-w-2xl overflow-y-auto scrollbar-thin"
         >
           <SheetHeader className="mb-6">
             <SheetTitle className="text-lg font-bold text-gray-900">
@@ -678,7 +679,7 @@ function QuestionPreview({ questionIds }: { questionIds: string[] }) {
       questionIds.forEach((id) => params.append("ids", id));
       return adminFetch<{ data: BatchQuestion[] }>(`/api/questions/batch?${params.toString()}`);
     },
-    staleTime: 60000,
+    staleTime: 15 * 60 * 1000,
   });
 
   if (isLoading) {

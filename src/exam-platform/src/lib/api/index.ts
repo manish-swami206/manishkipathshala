@@ -119,6 +119,7 @@ function useTokenizedQuery<TData>(
     queryKey: (overrideQueryKey as readonly unknown[]) ?? queryKey,
     queryFn: async () => fetcher((await getCachedToken(getToken)) ?? undefined),
     enabled: (overrideEnabled as boolean | undefined) ?? true,
+    staleTime: 15 * 60 * 1000,
     ...restOptions,
   } as UseQueryOptions<TData, Error>);
 }
@@ -156,6 +157,7 @@ function usePublicQuery<TData>(
     queryKey: (overrideQueryKey as readonly unknown[] | undefined) ?? queryKey,
     queryFn: fetcher,
     enabled: (overrideEnabled as boolean | undefined) ?? true,
+    staleTime: 15 * 60 * 1000,
     ...restOptions,
   } as UseQueryOptions<TData, Error>);
 }

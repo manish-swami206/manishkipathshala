@@ -64,6 +64,7 @@ import { useAdminFetch } from "@/hooks/useAdminFetch";
 import { ApiError, type ApiErrorBody } from "@/lib/api/client";
 import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
 import { CsvImportReview } from "@/components/admin/CsvImportReview";
+import { AddToSetDialog } from "@/components/admin/AssignmentPicker";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -74,7 +75,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { AlertTriangle, ClipboardList, FileText } from "lucide-react";
+import {
+  AlertTriangle,
+  ClipboardList,
+  FileText,
+  FolderPlus,
+  ListChecks,
+} from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface Question {
@@ -174,6 +181,9 @@ export default function QuestionsAdminPage() {
   // CSV import
   const csvImportRef = useRef<HTMLInputElement>(null);
 
+  // Bulk assign (add selected questions to mock test / PYQ / NCERT set)
+  const [addToSetOpen, setAddToSetOpen] = useState(false);
+
   // Subjects
   const { data: pyqSubjects = [] } = useListSubjects();
 
@@ -240,12 +250,15 @@ export default function QuestionsAdminPage() {
       if (filterDifficulty !== "All") sp.set("difficulty", filterDifficulty);
       return adminFetch<QuestionsResponse>(`/api/admin/questions?${sp.toString()}`);
     },
-    staleTime: 30000,
+    staleTime: 15 * 60 * 1000,
   });
 
   const questions = data?.data ?? [];
   const totalPages = data?.pagination?.totalPages ?? 1;
-  const allSelected = questions.length > 0 && selectedIds.length === questions.length;
+  const totalMatching = data?.pagination?.total ?? 0;
+  const pageIds = questions.map((q) => q.id);
+  const allSelected = pageIds.length > 0 && pageIds.every((id) => selectedIds.includes(id));
+  const [selectAllMatchingLoading, setSelectAllMatchingLoading] = useState(false);
 
   // Reset to page 1 if current page exceeds total pages (e.g. after deleting items on the last page)
   useEffect(() => {
@@ -441,9 +454,34 @@ export default function QuestionsAdminPage() {
 
   const toggleSelectAll = () => {
     if (allSelected) {
-      setSelectedIds([]);
+      setSelectedIds((prev) => prev.filter((id) => !pageIds.includes(id)));
     } else {
-      setSelectedIds(questions.map((q) => q.id));
+      setSelectedIds((prev) => {
+        const set = new Set(prev);
+        pageIds.forEach((id) => set.add(id));
+        return [...set];
+      });
+    }
+  };
+
+  const selectAllMatching = async () => {
+    setSelectAllMatchingLoading(true);
+    try {
+      const sp = new URLSearchParams();
+      if (debouncedSearch.trim()) sp.set("search", debouncedSearch.trim());
+      if (filterSubject !== "All") sp.set("subject", filterSubject);
+      if (filterDifficulty !== "All") sp.set("difficulty", filterDifficulty);
+
+      const res = await adminFetch<{ ids: string[]; total: number }>(
+        `/api/admin/questions/ids?${sp.toString()}`
+      );
+      setSelectedIds((prev) => {
+        const set = new Set(prev);
+        res.ids.forEach((id) => set.add(id));
+        return [...set];
+      });
+    } finally {
+      setSelectAllMatchingLoading(false);
     }
   };
 
@@ -491,7 +529,28 @@ export default function QuestionsAdminPage() {
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.8 }}
+                  className="flex items-center gap-2"
                 >
+                  <span className="text-xs font-bold text-gray-500">
+                    {selectedIds.length} selected
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedIds([])}
+                    className="rounded-xl h-9 gap-1.5 text-gray-500 hover:text-gray-700"
+                  >
+                    Clear
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setAddToSetOpen(true)}
+                    className="rounded-xl h-9 gap-1.5 border-indigo-200 text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700 font-bold"
+                  >
+                    <FolderPlus className="w-3.5 h-3.5" />
+                    Add to set / test
+                  </Button>
                   <Button
                     variant="destructive"
                     size="sm"
@@ -610,14 +669,32 @@ export default function QuestionsAdminPage() {
             <div>
               {/* Bulk select header */}
               {questions.length > 0 && (
-                <div className="flex items-center gap-2 px-5 pt-4 pb-2 text-sm text-gray-500">
-                  <input
-                    type="checkbox"
-                    checked={allSelected}
-                    onChange={toggleSelectAll}
-                    className="accent-indigo-600 w-4 h-4 rounded"
-                  />
-                  <span>{allSelected ? "Deselect all" : `Select all ${questions.length} on page`}</span>
+                <div className="flex flex-wrap items-center gap-3 px-5 pt-4 pb-2 text-sm text-gray-500">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={allSelected}
+                      onChange={toggleSelectAll}
+                      className="accent-indigo-600 w-4 h-4 rounded"
+                    />
+                    <span>
+                      {allSelected ? "Deselect page" : `Select all ${questions.length} on page`}
+                    </span>
+                  </label>
+                  {totalMatching > 0 && (
+                    <button
+                      onClick={selectAllMatching}
+                      disabled={selectAllMatchingLoading}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-violet-300 px-2.5 py-1 text-xs font-bold text-violet-700 hover:bg-violet-50 disabled:opacity-50"
+                    >
+                      {selectAllMatchingLoading ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <ListChecks className="h-3 w-3" />
+                      )}
+                      Select all {totalMatching} matching
+                    </button>
+                  )}
                 </div>
               )}
               <div className="overflow-x-auto scrollbar-thin">
@@ -947,6 +1024,14 @@ export default function QuestionsAdminPage() {
           onConfirm={() => {
             if (selectedIds.length > 0) bulkDeleteMutation.mutate(selectedIds);
           }}
+        />
+
+        {/* ── Add selected questions to set / test ──────────────────────────── */}
+        <AddToSetDialog
+          open={addToSetOpen}
+          onOpenChange={setAddToSetOpen}
+          questionIds={selectedIds}
+          onSuccess={() => setSelectedIds([])}
         />
 
         {/* ── Reference Warning Dialog ──────────────────────────────────────── */}

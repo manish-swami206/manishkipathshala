@@ -85,6 +85,7 @@ export default function ActivityLogsPage() {
       limit: 50,
       action: debouncedAction || undefined,
     }),
+    staleTime: 15 * 60 * 1000,
     enabled: true,
     queryFn: async () => {
       const token = await getToken();

@@ -62,6 +62,7 @@ export default function SubjectsAdminPage() {
     pagination: { page: number; limit: number; total: number; totalPages: number };
   }>({
     queryKey: ["admin", "subjects", page, debouncedSearch],
+    staleTime: 15 * 60 * 1000,
     queryFn: () => {
       const sp = new URLSearchParams({ page: String(page), limit: "20" });
       if (debouncedSearch.trim()) sp.set("search", debouncedSearch.trim());

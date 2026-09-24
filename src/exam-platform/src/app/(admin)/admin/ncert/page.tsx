@@ -148,7 +148,7 @@ export default function NcertAdminPage() {
         setFormTitle(editingItem.title);
         setFormSubject(editingItem.subject);
         setFormClassNum(String(editingItem.classNum));
-        setExternalUrl(editingItem.downloadUrl || "");
+        setExternalUrl(editingItem.downloadUrl || editingItem.readUrl || "");
         setUploadMode("url");
         setFile(null);
         setFileName("");

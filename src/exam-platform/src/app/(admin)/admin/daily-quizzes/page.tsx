@@ -241,7 +241,7 @@ export default function DailyQuizzesAdminPage() {
       adminFetch<DailyQuizzesResponse>(
         `/api/admin/daily-quizzes?page=${page}&limit=20`,
       ),
-    staleTime: 0,
+    staleTime: 15 * 60 * 1000,
   });
 
   const quizzes = data?.quizzes ?? [];
@@ -671,7 +671,7 @@ export default function DailyQuizzesAdminPage() {
         <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
           <SheetContent
             side="right"
-            className="w-full sm:max-w-md flex flex-col gap-0 p-0 overflow-hidden"
+            className="w-full sm:max-w-2xl flex flex-col gap-0 p-0 overflow-hidden"
           >
             <SheetHeader className="px-6 pt-6 pb-4 border-b shrink-0">
               <div className="flex items-center gap-3">
@@ -933,7 +933,7 @@ function QuestionPreview({ questionIds }: { questionIds: string[] }) {
       questionIds.forEach((id) => params.append("ids", id));
       return adminFetch<{ data: BatchQuestion[] }>(`/api/questions/batch?${params.toString()}`);
     },
-    staleTime: 60000,
+    staleTime: 15 * 60 * 1000,
   });
 
   if (isLoading) {

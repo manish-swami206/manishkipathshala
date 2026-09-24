@@ -26,8 +26,10 @@ import {
   CheckCircle2,
   AlertTriangle,
   X,
+  FolderPlus,
 } from "lucide-react";
 import Papa from "papaparse";
+import { AssignmentPicker } from "./AssignmentPicker";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface ParsedQuestion {
@@ -112,11 +114,13 @@ export function CsvImportReview({ invalidateKeys, onSuccess, onClose, triggerRef
 
   // Dialog state
   const [open, setOpen] = useState(false);
-  const [step, setStep] = useState<"upload" | "review">("upload");
+  const [step, setStep] = useState<"upload" | "review" | "assign">("upload");
   const [parsed, setParsed] = useState<ParsedQuestion[]>([]);
   const [currentPage, setCurrentPage] = useState(0);
   const [importing, setImporting] = useState(false);
   const [fileName, setFileName] = useState("");
+  // IDs of questions created by the last successful import (drives the assign step)
+  const [createdIds, setCreatedIds] = useState<string[]>([]);
 
   const ITEMS_PER_PAGE = 10;
   const totalPages = Math.max(1, Math.ceil(parsed.length / ITEMS_PER_PAGE));
@@ -146,7 +150,7 @@ type UploadQuestion = Omit<ParsedQuestion, "rowIndex">;
   // ── Upload mutation ────────────────────────────────────────────────────
   const bulkUploadMutation = useMutation({
     mutationFn: async (questions: UploadQuestion[]) =>
-      adminFetch<{ success: boolean; count: number; failed?: { index: number; errors: string[] }[] }>("/api/admin/questions/bulk-upload", {
+      adminFetch<{ success: boolean; count: number; createdIds?: string[]; failed?: { index: number; errors: string[] }[] }>("/api/admin/questions/bulk-upload", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ questions }),
@@ -165,8 +169,17 @@ type UploadQuestion = Omit<ParsedQuestion, "rowIndex">;
       if (invalidateKeys) {
         invalidateKeys.forEach((key) => qc.invalidateQueries({ queryKey: key }));
       }
-      onSuccess?.(res.count);
-      handleClose();
+      // Move to the assign step so the admin can add the new questions to a
+      // mock test / PYQ / NCERT set (skippable). If the server didn't return
+      // IDs (older response shape), fall back to closing as before.
+      // onSuccess is deferred until the wizard fully finishes (assign or skip).
+      if (res.createdIds && res.createdIds.length > 0) {
+        setCreatedIds(res.createdIds);
+        setStep("assign");
+      } else {
+        onSuccess?.(res.count);
+        handleClose();
+      }
     },
     onError: (err: Error) => {
       setImporting(false);
@@ -238,6 +251,7 @@ type UploadQuestion = Omit<ParsedQuestion, "rowIndex">;
     setParsed([]);
     setCurrentPage(0);
     setFileName("");
+    setCreatedIds([]);
   };
 
   const handleClose = () => {
@@ -246,6 +260,7 @@ type UploadQuestion = Omit<ParsedQuestion, "rowIndex">;
     setParsed([]);
     setCurrentPage(0);
     setFileName("");
+    setCreatedIds([]);
     onClose?.();
   };
 
@@ -532,6 +547,45 @@ type UploadQuestion = Omit<ParsedQuestion, "rowIndex">;
                     </Button>
                   </div>
                 </div>
+              </div>
+            </>
+          )}
+
+          {step === "assign" && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                  <FolderPlus className="w-5 h-5 text-indigo-500" />
+                  Add {createdIds.length} question{createdIds.length !== 1 ? "s" : ""} to a set?
+                </DialogTitle>
+                <DialogDescription>
+                  Optionally add the newly imported questions to a mock test, PYQ set, or NCERT MCQ
+                  set — existing or new. You can skip this and assign them later from the questions
+                  table.
+                </DialogDescription>
+              </DialogHeader>
+
+              <AssignmentPicker
+                questionIds={createdIds}
+                onSuccess={() => {
+                  // Assignment done — finish the wizard
+                  onSuccess?.(createdIds.length);
+                  handleClose();
+                }}
+              />
+
+              <div className="flex justify-end pt-3 mt-1 border-t">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    onSuccess?.(createdIds.length);
+                    handleClose();
+                  }}
+                  className="rounded-lg h-8 text-xs"
+                >
+                  Skip &amp; finish
+                </Button>
               </div>
             </>
           )}

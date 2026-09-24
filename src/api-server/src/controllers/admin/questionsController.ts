@@ -22,39 +22,39 @@ const questionBodySchema = z.object({
   medium: z.string().nullable().optional(),
 });
 
+function buildQuestionsWhere(query: Record<string, string | undefined>) {
+  const { search, subject, difficulty } = query;
+  const conditions = [];
+  if (search) {
+    const pattern = `%${search}%`;
+    conditions.push(
+      or(
+        ilike(questionsTable.text, pattern),
+        ilike(questionsTable.optionA, pattern),
+        ilike(questionsTable.optionB, pattern),
+        ilike(questionsTable.optionC, pattern),
+        ilike(questionsTable.optionD, pattern),
+        ilike(questionsTable.subject, pattern),
+        ilike(questionsTable.explanation, pattern),
+      )
+    );
+  }
+  if (subject) conditions.push(eq(questionsTable.subject, subject));
+  if (difficulty) conditions.push(eq(questionsTable.difficulty, difficulty));
+  return conditions.length ? and(...conditions) : undefined;
+}
+
 export async function listAllQuestions(req: Request, res: Response, next: NextFunction) {
   try {
     const {
       page = "1",
       limit = "20",
-      search,
-      subject,
-      difficulty,
-      type,
     } = req.query as Record<string, string>;
     const pageNum = Math.max(1, parseInt(page, 10));
     const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10)));
     const offset = (pageNum - 1) * limitNum;
 
-    const conditions = [];
-    if (search) {
-      const pattern = `%${search}%`;
-      conditions.push(
-        or(
-          ilike(questionsTable.text, pattern),
-          ilike(questionsTable.optionA, pattern),
-          ilike(questionsTable.optionB, pattern),
-          ilike(questionsTable.optionC, pattern),
-          ilike(questionsTable.optionD, pattern),
-          ilike(questionsTable.subject, pattern),
-          ilike(questionsTable.explanation, pattern),
-        )
-      );
-    }
-    if (subject) conditions.push(eq(questionsTable.subject, subject));
-    if (difficulty) conditions.push(eq(questionsTable.difficulty, difficulty));
-
-    const where = conditions.length ? and(...conditions) : undefined;
+    const where = buildQuestionsWhere(req.query as Record<string, string>);
 
     const [countRow] = await db
       .select({ count: sql<number>`count(*)` })
@@ -77,6 +77,30 @@ export async function listAllQuestions(req: Request, res: Response, next: NextFu
         totalPages: Math.ceil(Number(countRow.count) / limitNum),
       },
     });
+  } catch (err) {
+    return next(err);
+  }
+}
+
+const IDS_LIMIT_MAX = 2000;
+
+export async function listQuestionIds(req: Request, res: Response, next: NextFunction) {
+  try {
+    const where = buildQuestionsWhere(req.query as Record<string, string>);
+    const [countRow] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(questionsTable)
+      .where(where);
+    const total = Number(countRow.count);
+
+    const rows = await db
+      .select({ id: questionsTable.id })
+      .from(questionsTable)
+      .where(where)
+      .orderBy(desc(questionsTable.createdAt))
+      .limit(IDS_LIMIT_MAX);
+
+    res.json({ ids: rows.map((r) => r.id), total });
   } catch (err) {
     return next(err);
   }
@@ -145,6 +169,7 @@ export async function bulkUploadQuestions(req: Request, res: Response, next: Nex
     return res.status(201).json({
       success: true,
       count: inserted.length,
+      createdIds: inserted.map((q) => q.id),
       failed: failed.length > 0 ? failed : undefined,
     });
   } catch (err) {
@@ -291,6 +316,115 @@ export async function bulkDeleteQuestions(req: Request, res: Response, next: Nex
     try { await cleanupDeletedQuestionIds(ids); } catch { /* non-critical cleanup */ }
     invalidateEntity("questions");
     res.json({ success: true, deletedCount: ids.length });
+  } catch (err) {
+    return next(err);
+  }
+}
+
+// ── Assign questions to a mock test / PYQ set / NCERT set ────────────────────
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const assignBodySchema = z.object({
+  questionIds: z.array(z.string().min(1)).min(1),
+  targetType: z.enum(["mock", "pyq", "ncert"]),
+  targetId: z.string().min(1),
+});
+
+export async function assignQuestions(req: Request, res: Response, next: NextFunction) {
+  try {
+    const parsed = assignBodySchema.safeParse(req.body);
+    if (!parsed.success) {
+      return next(new AppError(400, `Validation failed: ${parsed.error.issues.map((i) => i.message).join("; ")}`));
+    }
+    const { questionIds, targetType, targetId } = parsed.data;
+
+    if (!UUID_RE.test(targetId)) {
+      return next(new AppError(400, "targetId must be a valid UUID"));
+    }
+    const invalidId = questionIds.find((id) => !UUID_RE.test(id));
+    if (invalidId) {
+      return next(new AppError(400, `questionIds contains an invalid UUID: ${invalidId}`));
+    }
+
+    // Dedupe incoming ids while preserving order
+    const incoming = [...new Set(questionIds)];
+
+    const result = await db.transaction(async (tx) => {
+      if (targetType === "mock") {
+        const [test] = await tx
+          .select()
+          .from(mockTestsTable)
+          .where(eq(mockTestsTable.id, targetId))
+          .for("update");
+        if (!test) return { notFound: true as const };
+
+        const existing = test.questionIds ?? [];
+        const existingSet = new Set(existing);
+        const added = incoming.filter((id) => !existingSet.has(id));
+        const merged = [...existing, ...added];
+
+        if (added.length > 0) {
+          await tx
+            .update(mockTestsTable)
+            .set({ questionIds: merged, questionCount: merged.length })
+            .where(eq(mockTestsTable.id, targetId));
+        }
+
+        return {
+          added: added.length,
+          alreadyPresent: incoming.length - added.length,
+          total: merged.length,
+          entity: "mock-tests" as const,
+        };
+      }
+
+      // pyq | ncert → exam_sets
+      const [set] = await tx
+        .select()
+        .from(examSetsTable)
+        .where(eq(examSetsTable.id, targetId))
+        .for("update");
+      if (!set) return { notFound: true as const };
+      if (set.type !== targetType) {
+        return { typeMismatch: true as const, actualType: set.type };
+      }
+
+      const existing = set.questionIds ?? [];
+      const existingSet = new Set(existing);
+      const added = incoming.filter((id) => !existingSet.has(id));
+      const merged = [...existing, ...added];
+
+      if (added.length > 0) {
+        await tx
+          .update(examSetsTable)
+          .set({ questionIds: merged, totalQuestions: merged.length })
+          .where(eq(examSetsTable.id, targetId));
+      }
+
+      return {
+        added: added.length,
+        alreadyPresent: incoming.length - added.length,
+        total: merged.length,
+        entity: "exam-sets" as const,
+      };
+    });
+
+    if ("notFound" in result && result.notFound) {
+      const label = targetType === "mock" ? "Mock test" : "Exam set";
+      return next(new AppError(404, `${label} not found`));
+    }
+    if ("typeMismatch" in result && result.typeMismatch) {
+      return next(new AppError(400, `Target exam set type is "${result.actualType}", expected "${targetType}"`));
+    }
+
+    invalidateEntity(result.entity);
+    return res.json({
+      success: true,
+      added: result.added,
+      alreadyPresent: result.alreadyPresent,
+      total: result.total,
+    });
   } catch (err) {
     return next(err);
   }

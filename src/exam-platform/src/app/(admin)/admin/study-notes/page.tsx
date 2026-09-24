@@ -178,6 +178,7 @@ export default function StudyNotesAdminPage() {
   const { data: notesResponse, isLoading } = useQuery<{ data: StudyNote[]; pagination: { page: number; limit: number; total: number; totalPages: number } }>({
     queryKey: ["admin", "study-notes", page],
     queryFn: () => adminFetch<{ data: StudyNote[]; pagination: { page: number; limit: number; total: number; totalPages: number } }>(`/api/admin/study-notes?page=${page}&limit=20`),
+    staleTime: 15 * 60 * 1000,
   });
   const notes = notesResponse?.data ?? [];
   const totalPages = notesResponse?.pagination?.totalPages ?? 1;

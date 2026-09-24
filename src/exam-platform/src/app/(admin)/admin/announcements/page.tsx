@@ -151,6 +151,7 @@ export default function AnnouncementsAdminPage() {
   }>({
     queryKey: ["admin", "announcements", page],
     queryFn: () => adminFetch(`/api/admin/announcements?page=${page}&limit=20`),
+    staleTime: 15 * 60 * 1000,
   });
   const announcements = response?.data ?? [];
   const totalPages = response?.pagination?.totalPages ?? 1;

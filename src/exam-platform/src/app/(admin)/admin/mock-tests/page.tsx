@@ -175,7 +175,7 @@ export default function MockTestsAdminPage() {
         setFormTitle(editingItem.title);
         setFormDescription(editingItem.description);
         setFormDuration(editingItem.durationMins);
-        // questionCount auto-calculated from selectedQuestionIds
+        setSelectedQuestionIds(editingItem.questionIds ?? []);
         setFormMaxMarks(editingItem.maxMarks);
         setFormNegMarking(editingItem.negativeMarking);
         setFormFeatured(editingItem.isFeatured);
@@ -183,7 +183,7 @@ export default function MockTestsAdminPage() {
         setFormTitle("");
         setFormDescription("");
         setFormDuration(60);
-        // questionCount auto-calculated from selectedQuestionIds
+        setSelectedQuestionIds([]);
         setFormMaxMarks(100);
         setFormNegMarking(0.25);
         setFormFeatured(false);
@@ -211,7 +211,7 @@ export default function MockTestsAdminPage() {
       if (filterSubject !== "All") sp.set("subjectId", filterSubject);
       return adminFetch<MockTestsResponse>(`/api/admin/mock-tests?${sp.toString()}`);
     },
-    staleTime: 0,
+    staleTime: 15 * 60 * 1000,
   });
   const tests = testsResponse?.data ?? [];
   const totalPages = testsResponse?.pagination?.totalPages ?? 1;
@@ -604,7 +604,7 @@ export default function MockTestsAdminPage() {
 
         {/* ── Create/Edit Sheet ───────────────────────────────────────────── */}
         <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-          <SheetContent side="right" className="w-full sm:max-w-md flex flex-col gap-0 p-0 overflow-hidden">
+          <SheetContent side="right" className="w-full sm:max-w-2xl flex flex-col gap-0 p-0 overflow-hidden">
             <SheetHeader className="px-6 pt-6 pb-4 border-b shrink-0">
               <div className="flex items-center gap-3">
                 <motion.div

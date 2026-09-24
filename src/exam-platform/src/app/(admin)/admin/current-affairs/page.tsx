@@ -171,7 +171,7 @@ export default function CurrentAffairsAdminPage() {
         category: category === "All" ? undefined : category,
       });
     },
-    staleTime: 30000,
+    staleTime: 15 * 60 * 1000,
   });
 
   // ── Mutations ──────────────────────────────────────────────────────────────

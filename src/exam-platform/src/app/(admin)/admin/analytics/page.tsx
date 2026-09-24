@@ -33,6 +33,7 @@ export default function AnalyticsPage() {
 
   const { data, isLoading } = useQuery<AnalyticsResponse>({
     queryKey: queryKeys.admin.analytics.overview(),
+    staleTime: 15 * 60 * 1000,
     enabled: true,
     queryFn: async () => {
       const token = await getToken();

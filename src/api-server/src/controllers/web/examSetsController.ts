@@ -57,7 +57,7 @@ export async function listExamSets(req: Request, res: Response, next: NextFuncti
       .select()
       .from(examSetsTable)
       .where(where)
-      .orderBy(desc(examSetsTable.createdAt))
+      .orderBy(desc(examSetsTable.createdAt), desc(examSetsTable.id))
       .limit(limitNum)
       .offset(offset);
 

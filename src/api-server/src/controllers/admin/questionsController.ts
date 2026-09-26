@@ -64,7 +64,7 @@ export async function listAllQuestions(req: Request, res: Response, next: NextFu
       .select()
       .from(questionsTable)
       .where(where)
-      .orderBy(desc(questionsTable.createdAt))
+      .orderBy(desc(questionsTable.createdAt), desc(questionsTable.id))
       .limit(limitNum)
       .offset(offset);
 
@@ -97,7 +97,7 @@ export async function listQuestionIds(req: Request, res: Response, next: NextFun
       .select({ id: questionsTable.id })
       .from(questionsTable)
       .where(where)
-      .orderBy(desc(questionsTable.createdAt))
+      .orderBy(desc(questionsTable.createdAt), desc(questionsTable.id))
       .limit(IDS_LIMIT_MAX);
 
     res.json({ ids: rows.map((r) => r.id), total });

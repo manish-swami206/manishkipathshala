@@ -78,6 +78,7 @@ export async function listAllSupportTickets(req: Request, res: Response, next: N
         desc(
           sql`COALESCE(${supportTicketsTable.lastMessageAt}, ${supportTicketsTable.createdAt})`,
         ),
+        desc(supportTicketsTable.id),
       )
       .limit(limitNum)
       .offset(offset);

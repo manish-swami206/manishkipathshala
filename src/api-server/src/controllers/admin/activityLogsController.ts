@@ -33,7 +33,7 @@ export async function listActivityLogs(req: Request, res: Response, next: NextFu
         .from(activityLogsTable)
         .leftJoin(userStreaksTable, eq(activityLogsTable.userId, userStreaksTable.userId))
         .where(where)
-        .orderBy(desc(activityLogsTable.createdAt))
+        .orderBy(desc(activityLogsTable.createdAt), desc(activityLogsTable.id))
         .limit(limit)
         .offset(offset),
     ]);

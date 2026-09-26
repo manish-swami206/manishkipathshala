@@ -28,7 +28,7 @@ export async function listAllAnnouncements(req: Request, res: Response, next: Ne
       db
         .select()
         .from(announcementsTable)
-        .orderBy(desc(announcementsTable.createdAt))
+        .orderBy(desc(announcementsTable.createdAt), desc(announcementsTable.id))
         .limit(limit)
         .offset(offset),
     ]);

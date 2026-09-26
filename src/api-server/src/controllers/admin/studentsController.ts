@@ -57,7 +57,7 @@ export async function listAllStudents(req: Request, res: Response, next: NextFun
       })
       .from(userStreaksTable)
       .where(whereClause)
-      .orderBy(desc(userStreaksTable.createdAt))
+      .orderBy(desc(userStreaksTable.createdAt), desc(userStreaksTable.id))
       .limit(limitNum)
       .offset(offset);
 

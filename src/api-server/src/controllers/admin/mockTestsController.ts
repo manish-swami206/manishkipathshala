@@ -46,7 +46,7 @@ export async function listAllMockTests(req: Request, res: Response, next: NextFu
       .select()
       .from(mockTestsTable)
       .where(where)
-      .orderBy(desc(mockTestsTable.createdAt))
+      .orderBy(desc(mockTestsTable.createdAt), desc(mockTestsTable.id))
       .limit(limitNum)
       .offset(offset);
 

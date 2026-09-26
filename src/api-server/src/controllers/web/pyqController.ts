@@ -180,7 +180,7 @@ export async function getPyqQuestions(req: Request, res: Response, next: NextFun
         .select()
         .from(questionsTable)
         .where(and(inArray(questionsTable.id, uniqueIds), eq(questionsTable.isActive, true)))
-        .orderBy(desc(questionsTable.createdAt))
+        .orderBy(desc(questionsTable.createdAt), desc(questionsTable.id))
         .limit(limit)
         .offset(offset),
     ]);

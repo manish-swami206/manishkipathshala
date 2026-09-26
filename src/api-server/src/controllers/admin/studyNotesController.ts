@@ -46,7 +46,7 @@ export async function listAllStudyNotes(req: Request, res: Response, next: NextF
       .select()
       .from(studyNotesTable)
       .where(where)
-      .orderBy(desc(studyNotesTable.createdAt))
+      .orderBy(desc(studyNotesTable.createdAt), desc(studyNotesTable.id))
       .limit(limitNum)
       .offset(offset);
 

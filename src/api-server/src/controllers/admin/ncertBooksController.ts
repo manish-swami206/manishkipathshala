@@ -60,7 +60,7 @@ export async function listAllNcertBooks(req: Request, res: Response, next: NextF
       .select()
       .from(ncertBooksTable)
       .where(where)
-      .orderBy(desc(ncertBooksTable.createdAt))
+      .orderBy(desc(ncertBooksTable.createdAt), desc(ncertBooksTable.id))
       .limit(limitNum)
       .offset(offset);
 

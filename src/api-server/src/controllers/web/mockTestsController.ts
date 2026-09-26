@@ -28,7 +28,7 @@ export async function listMockTests(req: Request, res: Response, next: NextFunct
         .select()
         .from(mockTestsTable)
         .where(where)
-        .orderBy(desc(mockTestsTable.createdAt))
+        .orderBy(desc(mockTestsTable.createdAt), desc(mockTestsTable.id))
         .limit(limitNum)
         .offset(offset),
     ]);

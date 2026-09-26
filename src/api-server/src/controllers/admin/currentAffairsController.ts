@@ -39,7 +39,7 @@ export async function listAllCurrentAffairs(req: Request, res: Response, next: N
         .select()
         .from(currentAffairsTable)
         .where(where)
-        .orderBy(desc(currentAffairsTable.publishedAt))
+        .orderBy(desc(currentAffairsTable.publishedAt), desc(currentAffairsTable.id))
         .limit(l)
         .offset(offset),
       db

@@ -42,7 +42,7 @@ export async function listAllSubjects(req: Request, res: Response, next: NextFun
         .select()
         .from(subjects)
         .where(where)
-        .orderBy(desc(subjects.createdAt))
+        .orderBy(desc(subjects.createdAt), desc(subjects.id))
         .limit(limitNum)
         .offset(offset),
     ]);

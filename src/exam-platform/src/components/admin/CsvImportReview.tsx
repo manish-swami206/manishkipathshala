@@ -121,6 +121,9 @@ export function CsvImportReview({ invalidateKeys, onSuccess, onClose, triggerRef
   const [fileName, setFileName] = useState("");
   // IDs of questions created by the last successful import (drives the assign step)
   const [createdIds, setCreatedIds] = useState<string[]>([]);
+  // Server-side import outcome — persisted in the wizard (not just a toast)
+  const [importedCount, setImportedCount] = useState(0);
+  const [failedRows, setFailedRows] = useState<{ index: number; errors: string[] }[]>([]);
 
   const ITEMS_PER_PAGE = 10;
   const totalPages = Math.max(1, Math.ceil(parsed.length / ITEMS_PER_PAGE));
@@ -157,6 +160,8 @@ type UploadQuestion = Omit<ParsedQuestion, "rowIndex">;
       }),
     onSuccess: (res) => {
       setImporting(false);
+      setImportedCount(res.count);
+      setFailedRows(res.failed ?? []);
       if (res.failed && res.failed.length > 0) {
         toast({
           title: `Imported ${res.count} questions (${res.failed.length} failed)`,
@@ -176,6 +181,10 @@ type UploadQuestion = Omit<ParsedQuestion, "rowIndex">;
       if (res.createdIds && res.createdIds.length > 0) {
         setCreatedIds(res.createdIds);
         setStep("assign");
+      } else if (res.failed && res.failed.length > 0) {
+        // Nothing was imported but some rows failed — stay on the review step
+        // so the persistent failure panel remains visible (no silent close).
+        setStep("review");
       } else {
         onSuccess?.(res.count);
         handleClose();
@@ -252,6 +261,8 @@ type UploadQuestion = Omit<ParsedQuestion, "rowIndex">;
     setCurrentPage(0);
     setFileName("");
     setCreatedIds([]);
+    setImportedCount(0);
+    setFailedRows([]);
   };
 
   const handleClose = () => {
@@ -261,6 +272,8 @@ type UploadQuestion = Omit<ParsedQuestion, "rowIndex">;
     setCurrentPage(0);
     setFileName("");
     setCreatedIds([]);
+    setImportedCount(0);
+    setFailedRows([]);
     onClose?.();
   };
 
@@ -364,6 +377,8 @@ type UploadQuestion = Omit<ParsedQuestion, "rowIndex">;
               </DialogHeader>
 
               <div className="space-y-4">
+                <ImportFailuresPanel importedCount={importedCount} failedRows={failedRows} />
+
                 {/* Bulk actions */}
                 <div className="flex items-center gap-3 flex-wrap p-3 bg-gray-50 rounded-xl border">
                   <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">Bulk Actions:</span>
@@ -565,6 +580,8 @@ type UploadQuestion = Omit<ParsedQuestion, "rowIndex">;
                 </DialogDescription>
               </DialogHeader>
 
+              <ImportFailuresPanel importedCount={importedCount} failedRows={failedRows} />
+
               <AssignmentPicker
                 questionIds={createdIds}
                 onSuccess={() => {
@@ -592,5 +609,32 @@ type UploadQuestion = Omit<ParsedQuestion, "rowIndex">;
         </DialogContent>
       </Dialog>
     </>
+  );
+}
+
+// ── Persistent server-side failure panel (assign + all-failed review steps) ──
+function ImportFailuresPanel({
+  importedCount,
+  failedRows,
+}: {
+  importedCount: number;
+  failedRows: { index: number; errors: string[] }[];
+}) {
+  if (failedRows.length === 0) return null;
+  return (
+    <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 space-y-2">
+      <div className="flex items-center gap-2 text-xs font-bold text-amber-700">
+        <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+        Imported {importedCount} of {importedCount + failedRows.length} rows —{" "}
+        {failedRows.length} failed
+      </div>
+      <div className="max-h-32 overflow-y-auto space-y-1 pr-1">
+        {failedRows.map((f) => (
+          <div key={f.index} className="text-[11px] leading-relaxed text-amber-800">
+            <span className="font-semibold">Row {f.index}:</span> {f.errors.join("; ")}
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }

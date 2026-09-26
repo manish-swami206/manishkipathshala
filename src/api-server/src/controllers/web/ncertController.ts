@@ -74,7 +74,7 @@ export async function getNcertMcqQuestions(req: Request, res: Response, next: Ne
       .select()
       .from(questionsTable)
       .where(and(inArray(questionsTable.id, uniqueIds), eq(questionsTable.isActive, true)))
-      .orderBy(desc(questionsTable.createdAt));
+      .orderBy(desc(questionsTable.createdAt), desc(questionsTable.id));
 
     if (classNum) all = all.filter((q) => q.classNum === parseInt(classNum, 10));
     if (subject) all = all.filter((q) => q.subject?.toLowerCase() === subject.toLowerCase());
@@ -147,7 +147,7 @@ export async function getNcertBooks(req: Request, res: Response, next: NextFunct
       .select()
       .from(ncertBooksTable)
       .where(where)
-      .orderBy(ncertBooksTable.classNum, ncertBooksTable.subject)
+      .orderBy(ncertBooksTable.classNum, ncertBooksTable.subject, ncertBooksTable.id)
       .limit(limitNum)
       .offset(offset);
 

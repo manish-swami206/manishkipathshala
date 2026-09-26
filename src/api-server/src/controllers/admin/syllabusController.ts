@@ -43,7 +43,7 @@ export async function listAllSyllabus(req: Request, res: Response, next: NextFun
         .from(syllabusTable)
         .innerJoin(subjects, eq(syllabusTable.subjectId, subjects.id))
         .where(and(...conditions, ilike(subjects.name, subject)))
-        .orderBy(desc(syllabusTable.createdAt))
+        .orderBy(desc(syllabusTable.createdAt), desc(syllabusTable.id))
         .limit(limitNum)
         .offset(offset)
         .then(rows => rows.map(r => r.syllabus));
@@ -57,7 +57,7 @@ export async function listAllSyllabus(req: Request, res: Response, next: NextFun
         .select()
         .from(syllabusTable)
         .where(where)
-        .orderBy(desc(syllabusTable.createdAt))
+        .orderBy(desc(syllabusTable.createdAt), desc(syllabusTable.id))
         .limit(limitNum)
         .offset(offset);
     }

@@ -30,7 +30,7 @@ export async function listAllDailyQuizzes(req: Request, res: Response, next: Nex
       db
         .select()
         .from(dailyQuizzes)
-        .orderBy(desc(dailyQuizzes.scheduledDate))
+        .orderBy(desc(dailyQuizzes.scheduledDate), desc(dailyQuizzes.id))
         .limit(limit)
         .offset(offset),
     ]);

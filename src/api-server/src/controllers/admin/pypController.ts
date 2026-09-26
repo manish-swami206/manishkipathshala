@@ -65,7 +65,7 @@ export async function listAllPyp(req: Request, res: Response, next: NextFunction
       .select()
       .from(previousYearPapersTable)
       .where(where)
-      .orderBy(desc(previousYearPapersTable.createdAt))
+      .orderBy(desc(previousYearPapersTable.createdAt), desc(previousYearPapersTable.id))
       .limit(limitNum)
       .offset(offset);
 

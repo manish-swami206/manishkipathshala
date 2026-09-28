@@ -56,7 +56,7 @@ export default function MockTests() {
               <CardContent className="p-6 flex flex-col h-full gap-4">
                 <div className="space-y-2">
                   <h3 className="font-bold text-xl leading-tight pr-12">{test.title}</h3>
-                  <p className="text-sm text-muted-foreground line-clamp-2">{test.description}</p>
+                  <p className="text-sm text-muted-foreground line-clamp-2 whitespace-pre-line">{test.description}</p>
                 </div>
                 
                 <div className="flex flex-wrap justify-between items-center gap-y-3 gap-x-2 text-sm mt-4 bg-muted/30 p-4 rounded-2xl">

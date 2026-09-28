@@ -389,7 +389,7 @@ export default function AnnouncementsAdminPage() {
                                   {ann.title}
                                 </p>
                                 {ann.body && (
-                                  <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
+                                  <p className="text-xs text-muted-foreground line-clamp-1 whitespace-pre-line mt-0.5">
                                     {ann.body}
                                   </p>
                                 )}

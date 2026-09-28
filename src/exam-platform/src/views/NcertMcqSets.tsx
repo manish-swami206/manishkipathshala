@@ -118,7 +118,7 @@ export default function NcertMcqSets() {
                 <div className="flex-1">
                   <h3 className="font-bold leading-tight">{set.title}</h3>
                   {set.description && (
-                    <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{set.description}</p>
+                    <p className="text-sm text-muted-foreground mt-1 line-clamp-2 whitespace-pre-line">{set.description}</p>
                   )}
                   {set.medium && (
                     <span className="inline-block text-[10px] font-semibold text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-md mt-2">

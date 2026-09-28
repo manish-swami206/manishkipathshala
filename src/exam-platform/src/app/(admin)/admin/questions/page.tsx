@@ -732,7 +732,7 @@ export default function QuestionsAdminPage() {
                             />
                           </TableCell>
                           <TableCell className="py-3 max-w-[320px]">
-                            <p className="font-semibold text-gray-900 text-sm leading-snug line-clamp-2">{q.text}</p>
+                            <p className="font-semibold text-gray-900 text-sm leading-snug line-clamp-2 whitespace-pre-line">{q.text}</p>
                           </TableCell>
                           <TableCell>
                             <span className="text-xs font-semibold text-gray-500">{q.subject ?? "—"}</span>
@@ -821,7 +821,7 @@ export default function QuestionsAdminPage() {
                 </DialogHeader>
                 <div className="space-y-4">
                   <div className="bg-gray-50/50 border border-gray-100 rounded-xl p-4">
-                    <p className="text-sm font-semibold text-gray-900 leading-relaxed">{viewingItem.text}</p>
+                    <p className="text-sm font-semibold text-gray-900 leading-relaxed whitespace-pre-wrap break-words">{viewingItem.text}</p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
@@ -863,7 +863,7 @@ export default function QuestionsAdminPage() {
                   {viewingItem.explanation && (
                     <div>
                       <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Explanation</h3>
-                      <p className="text-sm text-gray-600 bg-gray-50/50 border border-gray-100 rounded-xl p-3 leading-relaxed">{viewingItem.explanation}</p>
+                      <p className="text-sm text-gray-600 bg-gray-50/50 border border-gray-100 rounded-xl p-3 leading-relaxed whitespace-pre-wrap break-words">{viewingItem.explanation}</p>
                     </div>
                   )}
 

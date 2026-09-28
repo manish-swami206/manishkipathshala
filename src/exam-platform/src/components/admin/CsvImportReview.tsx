@@ -161,11 +161,20 @@ type UploadQuestion = Omit<ParsedQuestion, "rowIndex">;
     onSuccess: (res) => {
       setImporting(false);
       setImportedCount(res.count);
-      setFailedRows(res.failed ?? []);
-      if (res.failed && res.failed.length > 0) {
+      // Map the server's 1-based position in the submitted array back to the
+      // original CSV row number, so "Row N" in the panel matches "#N" in the
+      // review list (rows can be dropped/removed before submit).
+      const failed = res.failed ?? [];
+      setFailedRows(
+        failed.map((f) => {
+          const submitted = parsed[f.index - 1];
+          return { ...f, index: submitted ? submitted.rowIndex + 1 : f.index };
+        })
+      );
+      if (failed.length > 0) {
         toast({
-          title: `Imported ${res.count} questions (${res.failed.length} failed)`,
-          description: res.failed.slice(0, 5).map((f) => `Row ${f.index}: ${f.errors.join("; ")}`).join("\n") + (res.failed.length > 5 ? `\n...and ${res.failed.length - 5} more` : ""),
+          title: `Imported ${res.count} questions (${failed.length} failed)`,
+          description: failed.slice(0, 5).map((f) => `Row ${f.index}: ${f.errors.join("; ")}`).join("\n") + (failed.length > 5 ? `\n...and ${failed.length - 5} more` : ""),
           variant: "default",
         });
       } else {
@@ -460,7 +469,7 @@ type UploadQuestion = Omit<ParsedQuestion, "rowIndex">;
                             <span className="text-[10px] font-bold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded shrink-0">
                               #{q.rowIndex + 1}
                             </span>
-                            <p className="text-sm font-semibold text-gray-900 line-clamp-2 flex-1">
+                            <p className="text-sm font-semibold text-gray-900 line-clamp-2 whitespace-pre-line flex-1">
                               {q.text}
                             </p>
                           </div>

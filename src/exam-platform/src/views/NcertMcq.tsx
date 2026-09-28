@@ -226,7 +226,7 @@ export default function NcertMcq() {
                   <div className="shrink-0 w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">
                     {currentQIndex + 1}
                   </div>
-                  <p className="text-base md:text-lg font-medium leading-relaxed">
+                  <p className="text-base md:text-lg font-medium leading-relaxed whitespace-pre-wrap break-words">
                     {currentQ.text}
                   </p>
                 </div>

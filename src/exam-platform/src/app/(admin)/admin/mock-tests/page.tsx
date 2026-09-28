@@ -469,7 +469,7 @@ export default function MockTestsAdminPage() {
                             </div>
                             <div className="min-w-0">
                               <p className="font-semibold text-gray-900 text-sm leading-snug line-clamp-1">{test.title}</p>
-                              <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{test.description}</p>
+                              <p className="text-xs text-muted-foreground line-clamp-1 whitespace-pre-line mt-0.5">{test.description}</p>
                             </div>
                           </div>
                         </TableCell>

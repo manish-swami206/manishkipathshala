@@ -38,7 +38,7 @@ export default function MockTestDetail() {
         <CardContent className="p-6 md:p-8 space-y-6">
           <div>
             <h1 className="text-2xl md:text-3xl font-extrabold text-foreground">{test.title}</h1>
-            {test.description && <p className="text-muted-foreground mt-2">{test.description}</p>}
+            {test.description && <p className="text-muted-foreground mt-2 whitespace-pre-wrap break-words">{test.description}</p>}
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

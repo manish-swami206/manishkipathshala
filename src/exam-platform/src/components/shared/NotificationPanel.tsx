@@ -94,7 +94,7 @@ export default function NotificationsPanel() {
                           {ann.title}
                         </p>
                         {ann.body && (
-                          <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                          <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed whitespace-pre-wrap break-words">
                             {ann.body}
                           </p>
                         )}

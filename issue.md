@@ -98,3 +98,23 @@ Status legend: `[ ] open · [~] in progress · [x] fixed`
 ## Deployment notes
 1. Apply `lib/db/drizzle/0006_attempts_text_quizid_and_activity_type.sql` (or `pnpm --filter @workspace/db push`). Lossless: uuid→text widening + nullable column + `IF NOT EXISTS` indexes.
 2. Rebuild db project declarations before api-server typecheck: `pnpm run typecheck:libs` at repo root.
+
+---
+
+## Review findings (2026-09-27) - pagination tiebreaker + CSV panel pass
+
+### V1. All-failed CSV import never showed the persistent panel `[x]`
+- **MAJOR (was dead code):** `bulkUploadQuestions` returned `400 "No valid questions were supplied"` when every row failed validation, with no `failed` array in the error body. The wizard's `onError` path fired instead of `onSuccess`, so `setStep("review")` (the branch that keeps the dialog open for the failure panel) was unreachable - only a dismissable one-shot toast appeared.
+- **Fix:** server now responds `201 { success: true, count: 0, createdIds: [], failed: [...] }` for the all-rows-failed case (400 kept only for malformed body: non-array/empty `questions`). Frontend branch activated as designed: stays on review step, panel shows "Imported 0 of N rows - N failed". Contract amended in AGENTS.md.
+
+### V2. Failed-row index mismatch (panel vs review list) `[x]`
+- Server `failed[].index` = 1-based position in the *submitted* array; review list labels rows `#N` using the original CSV `rowIndex`. If rows were dropped pre-submit (missing text) or removed by the user, "Row 3" in the panel pointed at a different row than "#3" in the list.
+- **Fix:** `CsvImportReview` maps `failed[].index` back through the submitted order (`parsed[i].rowIndex + 1`) when storing `failedRows`; toast and panel both show CSV row numbers.
+
+### V3. Newlines in question text invisible everywhere (admin report) `[x]`
+- Admin reported "can't add new line in question from edit sheet". Static analysis: input layer (plain controlled textarea, no Enter interceptors anywhere) and persistence layer (trim ends only, zod `min(1)`, Postgres `text`) were both correct - the defect was **display**: all render sites used default `white-space: normal`, which collapses `\n` to spaces (detail dialog "Full question preview", table cell, all players, listings, announcement bodies, instructions).
+- **Fix:** `whitespace-pre-wrap break-words` on full-text renders (questions detail + explanation, GlobalMcqPlayer, NcertMcq, ReportCardModal, result page, MockTestDetail, DailyQuizInstructions rules, CurrentAffairDetail summary, AnnouncementBanner, NotificationPanel) and `whitespace-pre-line` inside `line-clamp-*` previews (questions table, QuestionSelector, CSV review, exam-sets/daily-quizzes previews, public listing cards, admin list previews). Contract added to AGENTS.md.
+
+### V4. Observations - not fixed (out of scope)
+- `web/ncertController` MCQ list materializes all matching rows then JS-slices (order now deterministic, but not SQL-paginated like `pyqController`).
+- Limit-only "recent N" queries (`web/streaksController`, `web/attemptsController:109`, `admin/studentsController:129`) sort on non-unique columns - no page overlap possible without `.offset`, but last-slot membership can shuffle between requests.

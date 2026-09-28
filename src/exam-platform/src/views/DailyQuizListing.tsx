@@ -139,7 +139,7 @@ function QuizCard({
               {quiz.title}
             </h3>
             {quiz.description && (
-              <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
+              <p className="text-sm text-muted-foreground line-clamp-2 whitespace-pre-line mt-1">
                 {quiz.description}
               </p>
             )}

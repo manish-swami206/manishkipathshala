@@ -474,7 +474,7 @@ export default function StudyNotesAdminPage() {
                             <div className="min-w-0">
                               <p className="font-semibold text-gray-900 text-sm leading-snug line-clamp-1">{note.title}</p>
                               {note.description && (
-                                <p className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5">{note.description}</p>
+                                <p className="text-[11px] text-muted-foreground line-clamp-1 whitespace-pre-line mt-0.5">{note.description}</p>
                               )}
                             </div>
                           </div>

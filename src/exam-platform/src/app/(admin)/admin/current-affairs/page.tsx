@@ -451,7 +451,7 @@ export default function CurrentAffairsAdminPage() {
                                 {item.title}
                               </p>
                               {item.summary && (
-                                <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
+                                <p className="text-xs text-muted-foreground line-clamp-1 whitespace-pre-line mt-0.5">
                                   {item.summary}
                                 </p>
                               )}

@@ -180,7 +180,7 @@ export default function CurrentAffairDetail() {
 
           {/* Summary — bold intro paragraph */}
           {article.summary && (
-            <p className="text-sm font-bold text-foreground leading-relaxed mb-5">
+            <p className="text-sm font-bold text-foreground leading-relaxed mb-5 whitespace-pre-wrap break-words">
               {article.summary}
             </p>
           )}

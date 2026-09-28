@@ -738,7 +738,7 @@ export default function GlobalMcqPlayer({
                   <div className="shrink-0 w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">
                     {currentQIndex + 1}
                   </div>
-                  <h2 className="text-base md:text-lg font-medium leading-relaxed">
+                  <h2 className="text-base md:text-lg font-medium leading-relaxed whitespace-pre-wrap break-words">
                     {currentQ.text}
                   </h2>
                 </div>

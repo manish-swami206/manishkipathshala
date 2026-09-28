@@ -708,7 +708,7 @@ function QuestionPreview({ questionIds }: { questionIds: string[] }) {
                 {i + 1}
               </span>
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-semibold text-gray-900 leading-snug line-clamp-2">
+                <p className="text-xs font-semibold text-gray-900 leading-snug line-clamp-2 whitespace-pre-line">
                   {q.text}
                 </p>
                 <div className="flex items-center gap-1.5 mt-1.5">

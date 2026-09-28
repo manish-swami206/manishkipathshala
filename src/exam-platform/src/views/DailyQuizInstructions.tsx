@@ -77,7 +77,7 @@ function RulesBox({
             >
               {i + 1}
             </span>
-            <span className="text-sm font-semibold text-amber-900 leading-snug">
+            <span className="text-sm font-semibold text-amber-900 leading-snug whitespace-pre-wrap break-words">
               {rule}
             </span>
           </li>

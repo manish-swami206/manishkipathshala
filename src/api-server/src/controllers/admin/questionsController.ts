@@ -161,7 +161,16 @@ export async function bulkUploadQuestions(req: Request, res: Response, next: Nex
     }
 
     if (parsedList.length === 0) {
-      return next(new AppError(400, "No valid questions were supplied"));
+      // Every row failed validation — still respond 201 with the per-row
+      // failures. The CSV wizard renders a persistent failure panel from
+      // `failed`; a 400 body carries no such array, so the panel would never
+      // show (count: 0 + empty createdIds keeps the wizard on its review step).
+      return res.status(201).json({
+        success: true,
+        count: 0,
+        createdIds: [],
+        failed,
+      });
     }
 
     const inserted = await db.insert(questionsTable).values(parsedList).returning();

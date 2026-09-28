@@ -132,7 +132,7 @@ export default function AnnouncementBanner() {
                     </p>
                   </div>
                   {ann.body && (
-                    <p className="text-xs text-muted-foreground leading-relaxed">
+                    <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap break-words">
                       {ann.body}
                     </p>
                   )}

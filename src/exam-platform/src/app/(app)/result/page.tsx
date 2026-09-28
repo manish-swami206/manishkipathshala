@@ -429,7 +429,7 @@ export default function ResultPage() {
                         {i + 1}
                       </span>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground leading-snug">
+                        <p className="text-sm font-medium text-foreground leading-snug whitespace-pre-wrap break-words">
                           {q.text}
                         </p>
                         <span

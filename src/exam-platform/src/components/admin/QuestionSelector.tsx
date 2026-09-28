@@ -325,7 +325,7 @@ export function QuestionSelector({ selectedIds, onChange }: QuestionSelectorProp
               >
                 <CardContent className="p-4 flex items-center justify-between gap-4">
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-gray-900 line-clamp-2">
+                    <p className="text-sm font-medium text-gray-900 line-clamp-2 whitespace-pre-line">
                       {q.text}
                     </p>
                     <div className="flex items-center gap-2 mt-1.5 flex-wrap">

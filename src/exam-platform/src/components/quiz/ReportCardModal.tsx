@@ -276,7 +276,7 @@ export default function ReportCardModal({
                           >
                             {i + 1}
                           </span>
-                          <p className="text-sm font-medium text-gray-900 leading-snug">
+                          <p className="text-sm font-medium text-gray-900 leading-snug whitespace-pre-wrap break-words">
                             {q.text}
                           </p>
                         </div>

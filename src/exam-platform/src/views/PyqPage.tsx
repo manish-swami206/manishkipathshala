@@ -140,7 +140,7 @@ export default function PyqPage() {
                 <div className="flex-1">
                   <h3 className="font-bold leading-tight">{set.title}</h3>
                   {set.description && (
-                    <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                    <p className="text-sm text-muted-foreground mt-1 line-clamp-2 whitespace-pre-line">
                       {set.description}
                     </p>
                   )}

@@ -655,7 +655,7 @@ export default function GlobalMcqPlayer({
           <div className="max-w-3xl mx-auto pb-safe">
             {/* Completed banner — only for mock/daily (submission-based modes) */}
             {isSubmitted && (
-              <div className="mb-6 p-4 rounded-xl bg-card border shadow-sm flex flex-wrap items-center justify-between gap-2">
+              <div className="mb-6 p-4 rounded-xl bg-card border shadow-sm">
                 <div className="min-w-0 flex-1">
                   <h3 className="font-bold text-lg">Completed</h3>
                   <p className="text-sm text-muted-foreground">
@@ -668,13 +668,6 @@ export default function GlobalMcqPlayer({
                     {questions.length - Object.keys(answers).length}
                   </p>
                 </div>
-                <Button
-                  variant="outline"
-                  onClick={() => setShowExplanation((v) => !v)}
-                  className="shrink-0"
-                >
-                  {showExplanation ? "Hide Explanations" : "Show Explanations"}
-                </Button>
               </div>
             )}
 
@@ -682,7 +675,7 @@ export default function GlobalMcqPlayer({
             {!isSubmitted && (mode === "ncert" || mode === "pyq") &&
               Object.keys(lockedQuestions).length > 0 && (
               <div className="mb-6 p-4 rounded-xl bg-card border shadow-sm">
-                <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-wrap items-center gap-3">
                   <div className="flex flex-wrap items-center gap-3">
                     <div className="flex items-center gap-1.5 text-sm">
                       <span className="inline-block w-3 h-3 rounded-sm bg-emerald-500/30" />
@@ -712,14 +705,6 @@ export default function GlobalMcqPlayer({
                       </span>
                     </div>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowExplanation((v) => !v)}
-                    className="text-xs shrink-0"
-                  >
-                    {showExplanation ? "Hide Explanations" : "Show Explanations"}
-                  </Button>
                 </div>
               </div>
             )}
@@ -799,13 +784,28 @@ export default function GlobalMcqPlayer({
                   })}
                 </div>
 
+                {/* Show/Hide Explanations toggle — directly below the answer options */}
+                {(isSubmitted || isQuestionLocked(currentQIndex)) &&
+                  currentQ.explanation && (
+                    <div className="mt-5 flex justify-center">
+                      <Button
+                        variant="outline"
+                        onClick={() => setShowExplanation((v) => !v)}
+                        className="gap-1.5 rounded-xl"
+                      >
+                        <Lightbulb className="w-4 h-4 text-blue-500" />
+                        {showExplanation ? "Hide Explanations" : "Show Explanations"}
+                      </Button>
+                    </div>
+                  )}
+
                 {(isSubmitted || isQuestionLocked(currentQIndex)) &&
                   showExplanation &&
                   currentQ.explanation && (
                     <motion.div
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: "auto" }}
-                      className="mt-6 p-4 rounded-xl bg-blue-50 border border-blue-100"
+                      className="mt-4 p-4 rounded-xl bg-blue-50 border border-blue-100"
                     >
                       <div className="flex items-center gap-2 text-blue-700 font-semibold mb-2">
                         <Lightbulb className="w-5 h-5" /> Explanation

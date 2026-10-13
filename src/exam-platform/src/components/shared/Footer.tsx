@@ -74,19 +74,29 @@ export default function Footer() {
   return (
     <footer className="mt-4 bg-white w-full">
       <div className="p-5">
-        {/* Brand  - LOGO*/}
-        <motion.div
-          whileHover={{ scale: 1.1, rotate: [0, -6, 6, 0] }}
-          transition={{ duration: 0.4 }}
-          className="relative w-9 h-9 shrink-0 cursor-pointer"
-        >
-          <Image
-            src="/logo.png"
-            alt="Manish Ki Pathshala"
-            fill
-            className="object-contain"
-          />
-        </motion.div>
+        {/* Brand  - LOGO + name */}
+        <div className="flex items-center gap-2.5 mb-3">
+          <motion.div
+            whileHover={{ scale: 1.1, rotate: [0, -6, 6, 0] }}
+            transition={{ duration: 0.4 }}
+            className="relative w-9 h-9 shrink-0 cursor-pointer"
+          >
+            <Image
+              src="/logo.png"
+              alt="Manish Ki Pathshala"
+              fill
+              className="object-contain"
+            />
+          </motion.div>
+          <div>
+            <span className="font-bold text-[16px] block leading-none text-primary">
+              Manish Ki Pathshala
+            </span>
+            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
+              Education Redefined
+            </span>
+          </div>
+        </div>
 
         {/* Description */}
         <p className="text-xs text-muted-foreground leading-relaxed mb-4 max-w-[220px]">

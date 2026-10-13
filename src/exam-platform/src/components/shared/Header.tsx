@@ -127,9 +127,8 @@ export default function Header() {
               />
             </motion.div>
             <div>
-              <span className="font-bold text-[16px] block leading-none">
-                Manish Ki{" "}
-                <span className="text-primary">Pathshala</span>
+              <span className="font-bold text-[16px] block leading-none text-primary">
+                Manish Ki Pathshala
               </span>
               <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
                 Education Redefined
@@ -277,9 +276,8 @@ export default function Header() {
           transition={{ delay: 0.15, duration: 0.3 }}
           className="leading-none min-w-0"
         >
-          <p className="font-extrabold text-xs text-foreground tracking-tight truncate">
-            Manish Ki{" "}
-            <span className="text-primary">Pathshala</span>
+          <p className="font-extrabold text-xs text-primary tracking-tight truncate">
+            Manish Ki Pathshala
           </p>
           <p className="text-[9px] text-muted-foreground font-semibold uppercase tracking-wider">
             Education Redefined
